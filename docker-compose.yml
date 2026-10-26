@@ -1,0 +1,48 @@
+# Entorno local completo: PostgreSQL + API
+#   docker compose up -d --build
+name: ideamatch
+
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: ideamatch-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ideamatch
+      POSTGRES_PASSWORD: ideamatch
+      POSTGRES_DB: ideamatch
+      TZ: America/Lima
+    ports:
+      # Expuesto para Prisma Studio, DBeaver o `npm run dev` desde Windows.
+      # Si ya tienes PostgreSQL instalado, define DB_PORT=5433 en .env
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - ideamatch_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ideamatch -d ideamatch"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    image: ideamatch-backend:local
+    container_name: ideamatch-api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      # Dentro de la red de Docker la BD se llama "db", no "localhost"
+      DATABASE_URL: postgresql://ideamatch:ideamatch@db:5432/ideamatch?schema=public
+      JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET en el archivo .env}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1d}
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+      SEED_ON_START: "true"
+    ports:
+      - "${API_PORT:-3000}:3000"
+
+volumes:
+  ideamatch_pgdata:

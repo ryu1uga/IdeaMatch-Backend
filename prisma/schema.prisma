@@ -1,0 +1,373 @@
+// =============================================================================
+//  IdeaMatch - Schema Prisma (PostgreSQL)
+//  Basado en el documento ER (18 tablas).
+//
+//  Convenciones:
+//   - Modelos en PascalCase y campos en camelCase en el código.
+//   - Tablas y columnas en snake_case en la BD (@@map / @map).
+//   - Los "CK ∈ {...}" del ER se guardan como VARCHAR (igual que el documento)
+//     y la restricción CHECK se crea en la migración SQL inicial
+//     (prisma/migrations/..._init/migration.sql). En TypeScript se validan con
+//     las constantes de src/domain/enums.ts.
+//   - Lo que Prisma no soporta nativamente (CHECK, índice parcial, índice GIN,
+//     trigger) también está en esa migración.
+// =============================================================================
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// -----------------------------------------------------------------------------
+// 1. Usuario
+// -----------------------------------------------------------------------------
+model Usuario {
+  id                 BigInt   @id @default(autoincrement())
+  email              String   @unique @db.VarChar(255)
+  passwordHash       String   @map("password_hash") @db.VarChar(255)
+  rolGlobal          String   @map("rol_global") @db.VarChar(20) // Creador | Colaborador
+  estado             String   @default("Pendiente_Verificacion") @db.VarChar(30)
+  fechaRegistro      DateTime @default(now()) @map("fecha_registro") @db.Timestamptz
+  fechaActualizacion DateTime @default(now()) @updatedAt @map("fecha_actualizacion") @db.Timestamptz
+
+  perfil              Perfil?
+  proyectosCreados    Proyecto[]
+  postulaciones       Postulacion[]
+  membresias          MiembroEquipo[]
+  mensajes            Mensaje[]
+  notificaciones      Notificacion[]
+  reportesHechos      Reporte[]         @relation("ReporteReportante")
+  reportesGestionados Reporte[]         @relation("ReporteAdmin")
+  entregas            EntregaProyecto[]
+  insignias           UsuarioInsignia[]
+  tokens              Token[]
+
+  @@index([estado])
+  @@map("usuario")
+}
+
+// -----------------------------------------------------------------------------
+// 2. Perfil (1:1 con Usuario)
+// -----------------------------------------------------------------------------
+model Perfil {
+  usuarioId              BigInt   @id @map("usuario_id")
+  nombreVisible          String   @map("nombre_visible") @db.VarChar(100)
+  biografia              String?  @db.Text
+  fotoUrl                String?  @map("foto_url") @db.VarChar(500)
+  disponibilidadHorasSem Int?     @map("disponibilidad_horas_sem") @db.SmallInt // CK 1-80
+  fechaActualizacion     DateTime @default(now()) @updatedAt @map("fecha_actualizacion") @db.Timestamptz
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([nombreVisible])
+  @@map("perfil")
+}
+
+// -----------------------------------------------------------------------------
+// 3. Habilidad (catálogo)
+// -----------------------------------------------------------------------------
+model Habilidad {
+  id     BigInt  @id @default(autoincrement())
+  nombre String  @unique @db.VarChar(100)
+  tipo   String  @db.VarChar(20) // Tecnica | Interes
+  activa Boolean @default(true)
+
+  @@map("habilidad")
+}
+
+// -----------------------------------------------------------------------------
+// 4. Categoria (catálogo administrable)
+// -----------------------------------------------------------------------------
+model Categoria {
+  id            BigInt   @id @default(autoincrement())
+  nombre        String   @unique @db.VarChar(100)
+  activa        Boolean  @default(true)
+  fechaCreacion DateTime @default(now()) @map("fecha_creacion") @db.Timestamptz
+
+  proyectos Proyecto[]
+
+  @@map("categoria")
+}
+
+// -----------------------------------------------------------------------------
+// 5. Proyecto
+// -----------------------------------------------------------------------------
+model Proyecto {
+  id                 BigInt   @id @default(autoincrement())
+  creadorId          BigInt   @map("creador_id")
+  titulo             String   @db.VarChar(150)
+  resumen            String   @db.VarChar(300)
+  descripcion        String?  @db.Text
+  categoriaId        BigInt?  @map("categoria_id")
+  estado             String   @default("Abierto") @db.VarChar(20)
+  fechaPublicacion   DateTime @default(now()) @map("fecha_publicacion") @db.Timestamptz
+  fechaActualizacion DateTime @default(now()) @updatedAt @map("fecha_actualizacion") @db.Timestamptz
+
+  creador        Usuario           @relation(fields: [creadorId], references: [id])
+  categoria      Categoria?        @relation(fields: [categoriaId], references: [id])
+  roles          RolProyecto[]
+  postulaciones  Postulacion[]
+  conversacion   Conversacion?
+  entregas       EntregaProyecto[]
+  insigniasOtorg UsuarioInsignia[]
+
+  @@index([creadorId])
+  @@index([categoriaId])
+  @@index([estado])
+  @@index([fechaPublicacion(sort: Desc)])
+  @@map("proyecto")
+}
+
+// -----------------------------------------------------------------------------
+// 6. RolProyecto
+// -----------------------------------------------------------------------------
+model RolProyecto {
+  id                  BigInt   @id @default(autoincrement())
+  proyectoId          BigInt   @map("proyecto_id")
+  nombre              String   @db.VarChar(100)
+  vacantesTotales     Int      @map("vacantes_totales") @db.SmallInt
+  vacantesDisponibles Int      @map("vacantes_disponibles") @db.SmallInt
+  fechaCreacion       DateTime @default(now()) @map("fecha_creacion") @db.Timestamptz
+
+  proyecto      Proyecto        @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  postulaciones Postulacion[]
+  miembros      MiembroEquipo[]
+
+  @@unique([proyectoId, nombre])
+  @@index([proyectoId])
+  @@map("rol_proyecto")
+}
+
+// -----------------------------------------------------------------------------
+// 7. Postulacion
+// -----------------------------------------------------------------------------
+model Postulacion {
+  id               BigInt    @id @default(autoincrement())
+  usuarioId        BigInt    @map("usuario_id")
+  rolProyectoId    BigInt    @map("rol_proyecto_id")
+  proyectoId       BigInt    @map("proyecto_id")
+  estado           String    @default("Pendiente") @db.VarChar(30)
+  notaPresentacion String?   @map("nota_presentacion") @db.Text
+  fechaPostulacion DateTime  @default(now()) @map("fecha_postulacion") @db.Timestamptz
+  fechaResolucion  DateTime? @map("fecha_resolucion") @db.Timestamptz
+
+  usuario     Usuario     @relation(fields: [usuarioId], references: [id])
+  rolProyecto RolProyecto @relation(fields: [rolProyectoId], references: [id], onDelete: Cascade)
+  proyecto    Proyecto    @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, proyectoId]) // Regla B: un solo rol por proyecto
+  @@index([rolProyectoId])
+  @@index([estado])
+  @@map("postulacion")
+}
+
+// -----------------------------------------------------------------------------
+// 8. MiembroEquipo
+//    Índice parcial UQ(usuario_id, rol_proyecto_id) WHERE estado='Activo'
+//    -> se crea en la migración SQL.
+// -----------------------------------------------------------------------------
+model MiembroEquipo {
+  id            BigInt    @id @default(autoincrement())
+  usuarioId     BigInt    @map("usuario_id")
+  rolProyectoId BigInt    @map("rol_proyecto_id")
+  estado        String    @default("Activo") @db.VarChar(20)
+  fechaIngreso  DateTime  @default(now()) @map("fecha_ingreso") @db.Timestamptz
+  fechaBaja     DateTime? @map("fecha_baja") @db.Timestamptz
+  motivoBaja    String?   @map("motivo_baja") @db.Text
+
+  usuario     Usuario     @relation(fields: [usuarioId], references: [id])
+  rolProyecto RolProyecto @relation(fields: [rolProyectoId], references: [id], onDelete: Cascade)
+
+  @@index([rolProyectoId])
+  @@index([usuarioId, estado])
+  @@map("miembro_equipo")
+}
+
+// -----------------------------------------------------------------------------
+// 9. Conversacion (un chat grupal por proyecto)
+// -----------------------------------------------------------------------------
+model Conversacion {
+  id            BigInt   @id @default(autoincrement())
+  proyectoId    BigInt   @unique @map("proyecto_id")
+  fechaCreacion DateTime @default(now()) @map("fecha_creacion") @db.Timestamptz
+
+  proyecto Proyecto  @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  mensajes Mensaje[]
+
+  @@map("conversacion")
+}
+
+// -----------------------------------------------------------------------------
+// 10. Mensaje
+// -----------------------------------------------------------------------------
+model Mensaje {
+  id             BigInt   @id @default(autoincrement())
+  conversacionId BigInt   @map("conversacion_id")
+  autorId        BigInt   @map("autor_id")
+  contenido      String   @db.Text
+  fechaEnvio     DateTime @default(now()) @map("fecha_envio") @db.Timestamptz
+
+  conversacion Conversacion @relation(fields: [conversacionId], references: [id], onDelete: Cascade)
+  autor        Usuario      @relation(fields: [autorId], references: [id])
+  adjuntos     Adjunto[]
+
+  @@index([conversacionId, fechaEnvio(sort: Desc)])
+  @@index([autorId])
+  @@map("mensaje")
+}
+
+// -----------------------------------------------------------------------------
+// 11. Adjunto
+// -----------------------------------------------------------------------------
+model Adjunto {
+  id          BigInt @id @default(autoincrement())
+  mensajeId   BigInt @map("mensaje_id")
+  url         String @db.VarChar(500)
+  tipoMime    String @map("tipo_mime") @db.VarChar(100)
+  tamanoBytes Int    @map("tamano_bytes") // CK <= 10 MB
+
+  mensaje Mensaje @relation(fields: [mensajeId], references: [id], onDelete: Cascade)
+
+  @@index([mensajeId])
+  @@map("adjunto")
+}
+
+// -----------------------------------------------------------------------------
+// 12. Notificacion
+// -----------------------------------------------------------------------------
+model Notificacion {
+  id             BigInt    @id @default(autoincrement())
+  usuarioId      BigInt    @map("usuario_id")
+  tipo           String    @db.VarChar(40)
+  mensaje        String    @db.VarChar(500)
+  entidadRefTipo String?   @map("entidad_ref_tipo") @db.VarChar(20)
+  entidadRefId   BigInt?   @map("entidad_ref_id")
+  leida          Boolean   @default(false)
+  fechaCreacion  DateTime  @default(now()) @map("fecha_creacion") @db.Timestamptz
+  fechaLectura   DateTime? @map("fecha_lectura") @db.Timestamptz
+
+  usuario Usuario             @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  emails  NotificacionEmail[]
+
+  @@index([usuarioId, leida])
+  @@index([fechaCreacion(sort: Desc)])
+  @@map("notificacion")
+}
+
+// -----------------------------------------------------------------------------
+// 13. NotificacionEmail (log de envío)
+// -----------------------------------------------------------------------------
+model NotificacionEmail {
+  id                 BigInt    @id @default(autoincrement())
+  notificacionId     BigInt    @map("notificacion_id")
+  destinatarioEmail  String    @map("destinatario_email") @db.VarChar(255)
+  estado             String    @default("Pendiente") @db.VarChar(20)
+  intentos           Int       @default(0) @db.SmallInt
+  fechaUltimoIntento DateTime? @map("fecha_ultimo_intento") @db.Timestamptz
+  errorDetalle       String?   @map("error_detalle") @db.Text
+
+  notificacion Notificacion @relation(fields: [notificacionId], references: [id], onDelete: Cascade)
+
+  @@index([notificacionId])
+  @@index([estado])
+  @@map("notificacion_email")
+}
+
+// -----------------------------------------------------------------------------
+// 14. Reporte (polimórfico)
+// -----------------------------------------------------------------------------
+model Reporte {
+  id              BigInt    @id @default(autoincrement())
+  reportanteId    BigInt    @map("reportante_id")
+  tipoEntidad     String    @map("tipo_entidad") @db.VarChar(20)
+  idEntidad       BigInt    @map("id_entidad")
+  motivo          String    @db.Text
+  estado          String    @default("Pendiente") @db.VarChar(20)
+  adminId         BigInt?   @map("admin_id")
+  resolucion      String?   @db.Text
+  fechaReporte    DateTime  @default(now()) @map("fecha_reporte") @db.Timestamptz
+  fechaResolucion DateTime? @map("fecha_resolucion") @db.Timestamptz
+
+  reportante Usuario  @relation("ReporteReportante", fields: [reportanteId], references: [id])
+  admin      Usuario? @relation("ReporteAdmin", fields: [adminId], references: [id])
+
+  @@unique([reportanteId, tipoEntidad, idEntidad])
+  @@index([estado])
+  @@index([tipoEntidad, idEntidad])
+  @@map("reporte")
+}
+
+// -----------------------------------------------------------------------------
+// 15. EntregaProyecto
+// -----------------------------------------------------------------------------
+model EntregaProyecto {
+  id               BigInt   @id @default(autoincrement())
+  proyectoId       BigInt   @map("proyecto_id")
+  colaboradorId    BigInt?  @map("colaborador_id")
+  plataforma       String   @db.VarChar(20)
+  url              String   @unique @db.VarChar(500)
+  fechaVinculacion DateTime @default(now()) @map("fecha_vinculacion") @db.Timestamptz
+
+  proyecto    Proyecto @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  colaborador Usuario? @relation(fields: [colaboradorId], references: [id], onDelete: SetNull)
+
+  @@index([proyectoId])
+  @@map("entrega_proyecto")
+}
+
+// -----------------------------------------------------------------------------
+// 16. Insignia (catálogo)
+// -----------------------------------------------------------------------------
+model Insignia {
+  id          BigInt  @id @default(autoincrement())
+  nombre      String  @unique @db.VarChar(100)
+  descripcion String? @db.VarChar(300)
+  criterio    String? @db.Text
+  activa      Boolean @default(true)
+
+  usuarios UsuarioInsignia[]
+
+  @@map("insignia")
+}
+
+// -----------------------------------------------------------------------------
+// 17. UsuarioInsignia
+//    PK compuesta (usuario_id, insignia_id): cada insignia se obtiene una vez.
+// -----------------------------------------------------------------------------
+model UsuarioInsignia {
+  usuarioId      BigInt   @map("usuario_id")
+  insigniaId     BigInt   @map("insignia_id")
+  proyectoId     BigInt?  @map("proyecto_id")
+  fechaObtencion DateTime @default(now()) @map("fecha_obtencion") @db.Timestamptz
+
+  usuario  Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  insignia Insignia  @relation(fields: [insigniaId], references: [id])
+  proyecto Proyecto? @relation(fields: [proyectoId], references: [id], onDelete: SetNull)
+
+  @@id([usuarioId, insigniaId])
+  @@index([usuarioId])
+  @@index([insigniaId])
+  @@map("usuario_insignia")
+}
+
+// -----------------------------------------------------------------------------
+// 18. Token (verificación de email / reset de password)
+// -----------------------------------------------------------------------------
+model Token {
+  id            BigInt   @id @default(autoincrement())
+  usuarioId     BigInt   @map("usuario_id")
+  tipo          String   @db.VarChar(30)
+  valor         String   @unique @db.VarChar(255)
+  expiraEn      DateTime @map("expira_en") @db.Timestamptz
+  usado         Boolean  @default(false)
+  fechaCreacion DateTime @default(now()) @map("fecha_creacion") @db.Timestamptz
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId, tipo])
+  @@map("token")
+}
