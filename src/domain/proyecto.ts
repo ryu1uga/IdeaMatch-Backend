@@ -40,3 +40,31 @@ export const TRANSICIONES: Record<EstadoProyectoDb, readonly EstadoProyectoDb[]>
   Cerrado: [],
   Cancelado: [],
 };
+
+/** Estados visibles en el catálogo público (el resto solo lo ve el creador) */
+export const PROJECT_STATUS_PUBLIC = ["abierto", "en_curso", "pausado", "cerrado"] as const;
+
+// Portadas degradadas de las tarjetas: un par de colores fijo por categoría (o por proyecto si no tiene)
+const PORTADAS: [string, string][] = [
+  ["#3b2a8c", "#7a5cec"],
+  ["#1d6b5c", "#5fcf9f"],
+  ["#a3405a", "#f39a5a"],
+  ["#1e4f8a", "#5aa8f3"],
+  ["#6b2d8a", "#c77df3"],
+  ["#8a5a1d", "#f3c75a"],
+  ["#1f5f7a", "#5fd0e0"],
+  ["#7a1f3d", "#f06a8f"],
+];
+export function portada(projectId: bigint, categoryId: bigint | null) {
+  const par = PORTADAS[Number((categoryId ?? projectId) % BigInt(PORTADAS.length))];
+  return { coverColor: par[1], coverGradient: par };
+}
+
+// Estados de una postulación: BD <-> API
+const POSTULACION_API: Record<string, string> = {
+  Pendiente: "pendiente",
+  Aceptada: "aceptada",
+  Rechazada: "rechazada",
+  Cancelada_Colaborador: "cancelada",
+};
+export const applicationStatusFromDb = (s: string) => POSTULACION_API[s] ?? s.toLowerCase();

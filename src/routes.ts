@@ -4,6 +4,7 @@ import { perfilModule } from "./modules/perfil/perfil.routes.js";
 import { catalogosModule } from "./modules/catalogos/catalogos.routes.js";
 import { usuariosModule } from "./modules/usuarios/usuarios.routes.js";
 import { proyectosModule } from "./modules/proyectos/proyectos.routes.js";
+import { exploracionModule } from "./modules/exploracion/exploracion.routes.js";
 import { postulacionesModule } from "./modules/postulaciones/postulaciones.routes.js";
 import { miembrosEquipoModule } from "./modules/miembros-equipo/miembros-equipo.routes.js";
 import { conversacionesModule } from "./modules/conversaciones/conversaciones.routes.js";
@@ -25,6 +26,7 @@ const modules = [
   catalogosModule,
   usuariosModule,
   proyectosModule,
+  exploracionModule,
   postulacionesModule,
   miembrosEquipoModule,
   conversacionesModule,

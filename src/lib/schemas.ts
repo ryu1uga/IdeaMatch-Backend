@@ -50,3 +50,21 @@ export const paginationShape = {
 /** Exige al menos un campo en los PATCH */
 export const atLeastOne = <T extends z.ZodObject>(schema: T) =>
   schema.refine((d) => Object.values(d).some((v) => v !== undefined), "Envía al menos un campo");
+
+/** Lista de IDs en query string: "?ids=1,2" o "?ids=1&ids=2" */
+export const idListQuery = z
+  .union([z.string(), z.array(z.string())])
+  .transform((v) => (Array.isArray(v) ? v : [v]).flatMap((x) => x.split(",")).map((x) => x.trim()).filter(Boolean))
+  .pipe(z.array(z.string().regex(digits, "Debe ser una lista de enteros positivos")).max(50))
+  .transform((ids) => ids.map((x) => BigInt(x)))
+  .optional()
+  .meta({ description: "Lista separada por comas, p. ej. 1,2,3" });
+
+/** Lista de valores de un enum en query string: "?x=a,b" o "?x=a&x=b" */
+export const enumListQuery = <T extends readonly [string, ...string[]]>(values: T) =>
+  z
+    .union([z.string(), z.array(z.string())])
+    .transform((v) => (Array.isArray(v) ? v : [v]).flatMap((x) => x.split(",")).map((x) => x.trim()).filter(Boolean))
+    .pipe(z.array(z.enum(values)))
+    .optional()
+    .meta({ description: `Uno o más (separados por comas): ${values.join(", ")}` });
