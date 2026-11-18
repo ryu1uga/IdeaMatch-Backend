@@ -89,6 +89,7 @@ model Habilidad {
   activa Boolean @default(true)
 
   usuarios UsuarioHabilidad[]
+  roles    RolHabilidad[]
 
   @@map("habilidad")
 }
@@ -114,13 +115,15 @@ model Categoria {
 model Proyecto {
   id                 BigInt   @id @default(autoincrement())
   creadorId          BigInt   @map("creador_id")
-  titulo             String   @db.VarChar(150)
-  resumen            String   @db.VarChar(300)
-  descripcion        String?  @db.Text
-  categoriaId        BigInt?  @map("categoria_id")
-  estado             String   @default("Abierto") @db.VarChar(20)
-  fechaPublicacion   DateTime @default(now()) @map("fecha_publicacion") @db.Timestamptz
-  fechaActualizacion DateTime @default(now()) @updatedAt @map("fecha_actualizacion") @db.Timestamptz
+  titulo             String    @db.VarChar(150)
+  resumen            String?   @db.VarChar(300) // obligatorio para publicar
+  descripcion        String?   @db.Text
+  categoriaId        BigInt?   @map("categoria_id") // obligatoria para publicar
+  modalidad          String?   @db.VarChar(20) // Remoto | Presencial | Hibrido (obligatoria para publicar)
+  estado             String    @default("Borrador") @db.VarChar(20)
+  fechaCreacion      DateTime  @default(now()) @map("fecha_creacion") @db.Timestamptz
+  fechaPublicacion   DateTime? @map("fecha_publicacion") @db.Timestamptz // se llena al publicar
+  fechaActualizacion DateTime  @default(now()) @updatedAt @map("fecha_actualizacion") @db.Timestamptz
 
   creador        Usuario           @relation(fields: [creadorId], references: [id])
   categoria      Categoria?        @relation(fields: [categoriaId], references: [id])
@@ -144,6 +147,8 @@ model RolProyecto {
   id                  BigInt   @id @default(autoincrement())
   proyectoId          BigInt   @map("proyecto_id")
   nombre              String   @db.VarChar(100)
+  descripcion         String?  @db.Text
+  dedicacion          String   @db.VarChar(10) // 5-10 | 10-20 | 20+ (horas por semana)
   vacantesTotales     Int      @map("vacantes_totales") @db.SmallInt
   vacantesDisponibles Int      @map("vacantes_disponibles") @db.SmallInt
   fechaCreacion       DateTime @default(now()) @map("fecha_creacion") @db.Timestamptz
@@ -151,6 +156,7 @@ model RolProyecto {
   proyecto      Proyecto        @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
   postulaciones Postulacion[]
   miembros      MiembroEquipo[]
+  habilidades   RolHabilidad[]
 
   @@unique([proyectoId, nombre])
   @@index([proyectoId])
@@ -433,4 +439,19 @@ model UsuarioInteres {
   @@id([usuarioId, categoriaId])
   @@index([categoriaId])
   @@map("usuario_interes")
+}
+
+// -----------------------------------------------------------------------------
+// 22. RolHabilidad (Sprint 3 - habilidades requeridas por un rol)
+// -----------------------------------------------------------------------------
+model RolHabilidad {
+  rolProyectoId BigInt @map("rol_proyecto_id")
+  habilidadId   BigInt @map("habilidad_id")
+
+  rolProyecto RolProyecto @relation(fields: [rolProyectoId], references: [id], onDelete: Cascade)
+  habilidad   Habilidad   @relation(fields: [habilidadId], references: [id])
+
+  @@id([rolProyectoId, habilidadId])
+  @@index([habilidadId])
+  @@map("rol_habilidad")
 }

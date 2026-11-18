@@ -185,12 +185,14 @@ src/
 |---|---|---|
 | 1 — Acceso | `/auth/register`, `/auth/login`, `/auth/logout`, `/auth/me` | Hecho |
 | 2 — Perfil | `/me/profile`, `/me/profile/photo`, `/me/skills`, `/me/interests`, `/skills`, `/categories`, `/users/:id` | Hecho |
-| 3 — Proyectos | Crear/editar proyectos y roles, publicar, cambiar estado, cancelar | Pendiente |
+| 3 — Proyectos | `/projects` (borrador), roles, `publish`, `status`, `cancel`, `/me/projects` | Hecho |
 | 4 — Exploración | `GET /projects` con filtros y `GET /projects/:id` | Pendiente |
 | 5 — Postulaciones | Postular, cancelar, aceptar, rechazar | Pendiente |
 | 6 — Equipo y mensajería | Equipo, salir/remover, chat con adjuntos y WebSocket | Pendiente |
 | 7 — Notificaciones y reportes | Notificaciones in-app, contadores, reportes | Pendiente |
 | 8 — Administración | Métricas, moderación de reportes, categorías | Pendiente |
+
+Estados de un proyecto: `borrador` → (`publish`) → `abierto` ⇄ `en_curso` ⇄ `pausado` → `cerrado`; `cancelado` desde cualquier estado no final. Las transiciones están en `src/domain/proyecto.ts`.
 
 Los módulos CRUD genéricos que aún aparecen en Swagger (proyectos, postulaciones, mensajes, etc.) son del andamiaje inicial y se reemplazan en el sprint correspondiente.
 

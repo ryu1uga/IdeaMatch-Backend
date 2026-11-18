@@ -26,7 +26,10 @@ ALTER TABLE "habilidad"
 -- ---------- 5. Proyecto -------------------------------------------------------
 ALTER TABLE "proyecto"
   ADD CONSTRAINT "proyecto_estado_ck"
-    CHECK ("estado" IN ('Abierto','En_Curso','Pausado','Cerrado','Cancelado'));
+    CHECK ("estado" IN ('Borrador','Abierto','En_Curso','Pausado','Cerrado','Cancelado')),
+  ADD CONSTRAINT "proyecto_modalidad_ck"
+    CHECK ("modalidad" IS NULL OR "modalidad" IN ('Remoto','Presencial','Hibrido'));
+  -- (Sprint 3 agregó 'Borrador' y la modalidad: ver migración 20261118200000_sprint3_proyectos)
 
 -- Búsqueda full-text sobre título + resumen (índice GIN opcional del ER)
 CREATE INDEX "proyecto_busqueda_gin_idx" ON "proyecto"
@@ -37,7 +40,9 @@ ALTER TABLE "rol_proyecto"
   ADD CONSTRAINT "rol_proyecto_vacantes_totales_ck"
     CHECK ("vacantes_totales" > 0),
   ADD CONSTRAINT "rol_proyecto_vacantes_disponibles_ck"
-    CHECK ("vacantes_disponibles" BETWEEN 0 AND "vacantes_totales");
+    CHECK ("vacantes_disponibles" BETWEEN 0 AND "vacantes_totales"),
+  ADD CONSTRAINT "rol_proyecto_dedicacion_ck"
+    CHECK ("dedicacion" IN ('5-10','10-20','20+'));
 
 -- ---------- 7. Postulacion ----------------------------------------------------
 ALTER TABLE "postulacion"
