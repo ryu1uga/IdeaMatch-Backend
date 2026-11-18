@@ -5,7 +5,7 @@ import { HttpError } from "../utils/http-error.js";
 import { env } from "../config/env.js";
 
 export const notFoundHandler: RequestHandler = (req, _res, next) => {
-  next(HttpError.notFound(`Ruta no encontrada: ${req.method} ${req.originalUrl}`));
+  next(HttpError.notFound(`Ruta no encontrada: ${req.method} ${req.originalUrl}`, "ROUTE_NOT_FOUND"));
 };
 
 // Mensajes legibles para las restricciones propias del ER (prisma/sql/constraints.sql)
@@ -58,22 +58,22 @@ function dbCause(err: unknown): DbCause | undefined {
 export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
   // Validación (zod)
   if (err instanceof ZodError) {
-    return res.status(400).json({ error: "Datos inválidos", details: z.flattenError(err) });
+    return res.status(400).json({ code: "VALIDATION", message: "Datos inválidos", details: z.flattenError(err) });
   }
 
   // Errores propios
   if (err instanceof HttpError) {
-    return res.status(err.status).json({ error: err.message, details: err.details });
+    return res.status(err.status).json({ code: err.code, message: err.message, details: err.details });
   }
 
   // JSON mal formado en el body
   if (err instanceof SyntaxError && "body" in err) {
-    return res.status(400).json({ error: "El body no es un JSON válido" });
+    return res.status(400).json({ code: "INVALID_JSON", message: "El body no es un JSON válido" });
   }
 
   // No encontrado (update/delete sobre un id inexistente)
   if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") {
-    return res.status(404).json({ error: "Recurso no encontrado" });
+    return res.status(404).json({ code: "NOT_FOUND", message: "Recurso no encontrado" });
   }
 
   // Restricciones de PostgreSQL
@@ -83,22 +83,30 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
     const details = { constraint: db.constraint };
     switch (db.code) {
       case "23505":
-        return res.status(409).json({ error: legible ?? "Ya existe un registro con esos datos únicos", details });
+        return res
+          .status(409)
+          .json({ code: "CONFLICT", message: legible ?? "Ya existe un registro con esos datos únicos", details });
       case "23503":
         return res.status(409).json({
-          error: "Referencia a un registro inexistente, o el registro está en uso por otros datos",
+          code: "CONFLICT",
+          message: "Referencia a un registro inexistente, o el registro está en uso por otros datos",
           details,
         });
       case "23514": // CHECK o trigger fn_validar_postulacion
-        return res.status(400).json({ error: legible ?? db.message ?? "Se viola una regla de negocio", details });
+        return res
+          .status(400)
+          .json({ code: "VALIDATION", message: legible ?? db.message ?? "Se viola una regla de negocio", details });
       case "23502":
-        return res.status(400).json({ error: "Falta un campo obligatorio", details: { message: db.message } });
+        return res
+          .status(400)
+          .json({ code: "VALIDATION", message: "Falta un campo obligatorio", details: { message: db.message } });
     }
   }
 
   console.error(err);
   return res.status(500).json({
-    error: "Error interno del servidor",
+    code: "INTERNAL_ERROR",
+    message: "Error interno del servidor",
     ...(env.NODE_ENV !== "production" && { details: err instanceof Error ? err.message : String(err) }),
   });
 };

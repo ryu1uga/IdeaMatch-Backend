@@ -2,7 +2,7 @@
 // la lógica de negocio para no escribir strings "a mano".
 
 export const ROL_GLOBAL = ["Creador", "Colaborador"] as const;
-export const ESTADO_USUARIO = ["Pendiente_Verificacion", "Verificado", "Suspendido", "Baja"] as const;
+export const ESTADO_USUARIO = ["Activo", "Pendiente_Verificacion", "Verificado", "Suspendido", "Baja"] as const;
 export const TIPO_HABILIDAD = ["Tecnica", "Interes"] as const;
 export const ESTADO_PROYECTO = ["Abierto", "En_Curso", "Pausado", "Cerrado", "Cancelado"] as const;
 export const ESTADO_POSTULACION = ["Pendiente", "Aceptada", "Rechazada", "Cancelada_Colaborador"] as const;
@@ -29,6 +29,9 @@ export type EstadoPostulacion = (typeof ESTADO_POSTULACION)[number];
 export type EstadoMiembro = (typeof ESTADO_MIEMBRO)[number];
 export type TipoNotificacion = (typeof TIPO_NOTIFICACION)[number];
 export type TipoToken = (typeof TIPO_TOKEN)[number];
+
+/** Estados con los que no se puede iniciar sesión ni usar la API */
+export const ESTADOS_USUARIO_BLOQUEADOS: readonly string[] = ["Suspendido", "Baja"];
 
 // Límites del ER
 export const MAX_ADJUNTO_BYTES = 10 * 1024 * 1024; // 10 MB

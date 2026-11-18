@@ -1,6 +1,5 @@
 import { Router } from "express";
 import { authModule } from "./modules/auth/auth.routes.js";
-import { usuariosModule } from "./modules/usuarios/usuarios.routes.js";
 import { perfilesModule } from "./modules/perfiles/perfiles.routes.js";
 import { habilidadesModule } from "./modules/habilidades/habilidades.routes.js";
 import { categoriasModule } from "./modules/categorias/categorias.routes.js";
@@ -17,12 +16,12 @@ import { reportesModule } from "./modules/reportes/reportes.routes.js";
 import { entregasModule } from "./modules/entregas/entregas.routes.js";
 import { insigniasModule } from "./modules/insignias/insignias.routes.js";
 import { usuarioInsigniasModule } from "./modules/usuario-insignias/usuario-insignias.routes.js";
-import { tokensModule } from "./modules/tokens/tokens.routes.js";
 
-// El orden define el orden de las secciones en Swagger
+// El orden define el orden de las secciones en Swagger.
+// Los módulos CRUD genéricos (en español) se van reemplazando sprint a sprint por
+// los endpoints del contrato del front (docs/API_ENDPOINTS.md del repo IdeaMatch).
 const modules = [
   authModule,
-  usuariosModule,
   perfilesModule,
   habilidadesModule,
   categoriasModule,
@@ -39,7 +38,6 @@ const modules = [
   entregasModule,
   insigniasModule,
   usuarioInsigniasModule,
-  tokensModule,
 ];
 
 export const router = Router();

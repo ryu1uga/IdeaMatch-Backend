@@ -29,8 +29,11 @@ model Usuario {
   id                 BigInt   @id @default(autoincrement())
   email              String   @unique @db.VarChar(255)
   passwordHash       String   @map("password_hash") @db.VarChar(255)
-  rolGlobal          String   @map("rol_global") @db.VarChar(20) // Creador | Colaborador
-  estado             String   @default("Pendiente_Verificacion") @db.VarChar(30)
+  nombres            String   @db.VarChar(60) // firstName
+  apellidos          String   @db.VarChar(60) // lastName
+  esAdmin            Boolean  @default(false) @map("es_admin")
+  rolGlobal          String   @default("Colaborador") @map("rol_global") @db.VarChar(20) // Creador | Colaborador
+  estado             String   @default("Activo") @db.VarChar(30) // sin correo: la cuenta queda activa al registrarse
   fechaRegistro      DateTime @default(now()) @map("fecha_registro") @db.Timestamptz
   fechaActualizacion DateTime @default(now()) @updatedAt @map("fecha_actualizacion") @db.Timestamptz
 
@@ -45,6 +48,7 @@ model Usuario {
   entregas            EntregaProyecto[]
   insignias           UsuarioInsignia[]
   tokens              Token[]
+  tokensRevocados     TokenRevocado[]
 
   @@index([estado])
   @@map("usuario")
@@ -370,4 +374,22 @@ model Token {
 
   @@index([usuarioId, tipo])
   @@map("token")
+}
+
+// -----------------------------------------------------------------------------
+// 19. TokenRevocado (Sprint 1 - logout)
+//    Lista negra de JWT cerrados con POST /auth/logout, por su "jti".
+//    Las filas vencidas se pueden borrar: el JWT ya no sería válido igual.
+// -----------------------------------------------------------------------------
+model TokenRevocado {
+  jti       String   @id @db.VarChar(64)
+  usuarioId BigInt   @map("usuario_id")
+  expiraEn  DateTime @map("expira_en") @db.Timestamptz
+  fecha     DateTime @default(now()) @db.Timestamptz
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([expiraEn])
+  @@index([usuarioId])
+  @@map("token_revocado")
 }

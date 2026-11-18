@@ -10,7 +10,8 @@ ALTER TABLE "usuario"
   ADD CONSTRAINT "usuario_rol_global_ck"
     CHECK ("rol_global" IN ('Creador','Colaborador')),
   ADD CONSTRAINT "usuario_estado_ck"
-    CHECK ("estado" IN ('Pendiente_Verificacion','Verificado','Suspendido','Baja'));
+    CHECK ("estado" IN ('Activo','Pendiente_Verificacion','Verificado','Suspendido','Baja'));
+  -- (Sprint 1 agregó 'Activo': ver migración 20261118000000_sprint1_acceso)
 
 -- ---------- 2. Perfil ---------------------------------------------------------
 ALTER TABLE "perfil"

@@ -102,8 +102,8 @@ export function buildOpenApiDocument() {
       schemas: {
         Error: {
           type: "object",
-          properties: { error: { type: "string" }, details: {} },
-          required: ["error"],
+          properties: { code: { type: "string", example: "VALIDATION" }, message: { type: "string" }, details: {} },
+          required: ["code", "message"],
         },
       },
     },

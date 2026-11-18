@@ -1,16 +1,23 @@
 import { z } from "zod";
-import { ROL_GLOBAL } from "../../domain/enums.js";
+
+const nombre = z.string().trim().min(1, "Obligatorio").max(60);
 
 export const registerSchema = z.object({
-  email: z.email().max(255).transform((e) => e.toLowerCase()),
-  password: z.string().min(8, "Mínimo 8 caracteres").max(72),
-  rolGlobal: z.enum(ROL_GLOBAL),
-  nombreVisible: z.string().trim().min(1).max(100),
+  firstName: nombre.meta({ example: "Ana" }),
+  lastName: nombre.meta({ example: "Pérez" }),
+  email: z
+    .string()
+    .trim()
+    .max(255)
+    .meta({ example: "ana@correo.com" }),
+  // La fortaleza (≥ 8, una mayúscula y un número) se valida en el servicio
+  // para responder con el código WEAK_PASSWORD.
+  password: z.string().max(72).meta({ example: "Secreta123" }),
 });
 
 export const loginSchema = z.object({
-  email: z.email().transform((e) => e.toLowerCase()),
-  password: z.string().min(1),
+  email: z.string().trim().max(255).meta({ example: "ana@correo.com" }),
+  password: z.string().max(72).meta({ example: "Secreta123" }),
 });
 
 export type RegisterInput = z.infer<typeof registerSchema>;
