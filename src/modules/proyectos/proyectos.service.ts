@@ -261,7 +261,11 @@ export const proyectosService = {
     }
     if (!actual._count.roles) throw HttpError.conflict("Agrega al menos un rol antes de publicar", "NO_ROLES");
 
-    await prisma.proyecto.update({ where: { id }, data: { estado: "Abierto", fechaPublicacion: new Date() } });
+    await prisma.$transaction([
+      prisma.proyecto.update({ where: { id }, data: { estado: "Abierto", fechaPublicacion: new Date() } }),
+      // chat grupal del proyecto (Sprint 6)
+      prisma.conversacion.upsert({ where: { proyectoId: id }, update: {}, create: { proyectoId: id } }),
+    ]);
     return { project: await getProject(id) };
   },
 

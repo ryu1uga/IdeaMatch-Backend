@@ -49,6 +49,7 @@ model Usuario {
   insignias           UsuarioInsignia[]
   tokens              Token[]
   tokensRevocados     TokenRevocado[]
+  lecturas            ConversacionLectura[]
   habilidades         UsuarioHabilidad[]
   intereses           UsuarioInteres[]
 
@@ -216,8 +217,9 @@ model Conversacion {
   proyectoId    BigInt   @unique @map("proyecto_id")
   fechaCreacion DateTime @default(now()) @map("fecha_creacion") @db.Timestamptz
 
-  proyecto Proyecto  @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  proyecto Proyecto              @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
   mensajes Mensaje[]
+  lecturas ConversacionLectura[]
 
   @@map("conversacion")
 }
@@ -247,8 +249,9 @@ model Mensaje {
 model Adjunto {
   id          BigInt @id @default(autoincrement())
   mensajeId   BigInt @map("mensaje_id")
-  url         String @db.VarChar(500)
-  tipoMime    String @map("tipo_mime") @db.VarChar(100)
+  url         String  @db.VarChar(500)
+  nombre      String? @db.VarChar(255) // nombre original del archivo
+  tipoMime    String  @map("tipo_mime") @db.VarChar(100)
   tamanoBytes Int    @map("tamano_bytes") // CK <= 10 MB
 
   mensaje Mensaje @relation(fields: [mensajeId], references: [id], onDelete: Cascade)
@@ -454,4 +457,21 @@ model RolHabilidad {
   @@id([rolProyectoId, habilidadId])
   @@index([habilidadId])
   @@map("rol_habilidad")
+}
+
+// -----------------------------------------------------------------------------
+// 23. ConversacionLectura (Sprint 6 - no leídos y "visto")
+//    Última vez que cada usuario leyó la conversación.
+// -----------------------------------------------------------------------------
+model ConversacionLectura {
+  conversacionId BigInt   @map("conversacion_id")
+  usuarioId      BigInt   @map("usuario_id")
+  ultimaLectura  DateTime @default(now()) @map("ultima_lectura") @db.Timestamptz
+
+  conversacion Conversacion @relation(fields: [conversacionId], references: [id], onDelete: Cascade)
+  usuario      Usuario      @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@id([conversacionId, usuarioId])
+  @@index([usuarioId])
+  @@map("conversacion_lectura")
 }

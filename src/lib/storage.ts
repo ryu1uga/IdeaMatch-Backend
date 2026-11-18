@@ -16,8 +16,10 @@ export interface SaveInput {
   mime: string;
   /** carpeta lógica, p. ej. "avatars" o "attachments" */
   folder: string;
-  /** "image" se puede transformar (p. ej. redimensionar); "raw" se guarda tal cual (PDF) */
+  /** "image" para imágenes; "raw" se guarda tal cual (PDF) */
   kind: "image" | "raw";
+  /** solo imágenes: lado máximo en px (p. ej. 512 para fotos de perfil) */
+  maxSide?: number;
   /** URL base de la API para archivos locales cuando no hay PUBLIC_URL */
   baseUrl?: string;
 }
@@ -62,7 +64,7 @@ const localStorage: Storage = {
 
 const cloudinaryStorage: Storage = {
   driver: "cloudinary",
-  save({ buffer, folder, kind }) {
+  save({ buffer, folder, kind, maxSide }) {
     // El SDK lee CLOUDINARY_URL del entorno (cloudinary://API_KEY:API_SECRET@CLOUD_NAME)
     return new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
@@ -70,7 +72,7 @@ const cloudinaryStorage: Storage = {
           folder: `ideamatch/${folder}`,
           // "raw" evita la restricción de Cloudinary para entregar PDF como imagen
           resource_type: kind,
-          ...(kind === "image" && { transformation: [{ width: 512, height: 512, crop: "limit" }] }),
+          ...(kind === "image" && maxSide && { transformation: [{ width: maxSide, height: maxSide, crop: "limit" }] }),
         },
         (err, res?: UploadApiResponse) => {
           if (err || !res) return reject(err ?? new Error("Cloudinary no devolvió respuesta"));

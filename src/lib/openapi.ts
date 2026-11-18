@@ -55,6 +55,26 @@ const errorResponse = (description: string) => ({
   content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } },
 });
 
+/** JSON, multipart o ambos (si la ruta acepta body y archivo, el archivo es opcional) */
+function requestBody(op: OperationDoc) {
+  const content: Record<string, unknown> = {};
+  const json = op.body ? toSchema(op.body) : undefined;
+  if (json) content["application/json"] = { schema: json };
+  if (op.file) {
+    content["multipart/form-data"] = {
+      schema: {
+        type: "object",
+        properties: {
+          ...(json?.properties ?? {}),
+          [op.file.field]: { type: "string", format: "binary", description: op.file.description },
+        },
+        ...(!json && { required: [op.file.field] }),
+      },
+    };
+  }
+  return { required: true, content };
+}
+
 export function buildOpenApiDocument() {
   const paths: Record<string, Record<string, unknown>> = {};
 
@@ -76,23 +96,7 @@ export function buildOpenApiDocument() {
       ...(op.description && { description: op.description }),
       ...(op.auth && { security: [{ bearerAuth: [] }] }),
       parameters: [...toParameters(op.params, "path"), ...toParameters(op.query, "query")],
-      ...(op.body && {
-        requestBody: { required: true, content: { "application/json": { schema: toSchema(op.body) } } },
-      }),
-      ...(op.file && {
-        requestBody: {
-          required: true,
-          content: {
-            "multipart/form-data": {
-              schema: {
-                type: "object",
-                properties: { [op.file.field]: { type: "string", format: "binary", description: op.file.description } },
-                required: [op.file.field],
-              },
-            },
-          },
-        },
-      }),
+      ...((op.body || op.file) && { requestBody: requestBody(op) }),
       responses,
     };
   }

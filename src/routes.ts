@@ -6,10 +6,8 @@ import { usuariosModule } from "./modules/usuarios/usuarios.routes.js";
 import { proyectosModule } from "./modules/proyectos/proyectos.routes.js";
 import { exploracionModule } from "./modules/exploracion/exploracion.routes.js";
 import { postulacionesModule } from "./modules/postulaciones/postulaciones.routes.js";
-import { miembrosEquipoModule } from "./modules/miembros-equipo/miembros-equipo.routes.js";
+import { equipoModule } from "./modules/equipo/equipo.routes.js";
 import { conversacionesModule } from "./modules/conversaciones/conversaciones.routes.js";
-import { mensajesModule } from "./modules/mensajes/mensajes.routes.js";
-import { adjuntosModule } from "./modules/adjuntos/adjuntos.routes.js";
 import { notificacionesModule } from "./modules/notificaciones/notificaciones.routes.js";
 import { notificacionesEmailModule } from "./modules/notificaciones-email/notificaciones-email.routes.js";
 import { reportesModule } from "./modules/reportes/reportes.routes.js";
@@ -28,10 +26,8 @@ const modules = [
   proyectosModule,
   exploracionModule,
   postulacionesModule,
-  miembrosEquipoModule,
+  equipoModule,
   conversacionesModule,
-  mensajesModule,
-  adjuntosModule,
   notificacionesModule,
   notificacionesEmailModule,
   reportesModule,

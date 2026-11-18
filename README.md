@@ -170,6 +170,18 @@ src/
 - **Estados HTTP:** `400` datos inválidos · `401` sin sesión · `403` sin permiso · `404` no existe · `409` conflicto de reglas de negocio · `429` demasiados intentos.
 - **IDs:** son BIGINT y se devuelven como string (`"id": "1"`).
 
+### Tiempo real (WebSocket)
+
+El chat usa un WebSocket en `ws://localhost:3000/ws?token=<jwt>` (en producción `wss://`). El servidor envía eventos JSON `{ type, data }`:
+
+| Evento | Datos |
+|---|---|
+| `ready` | `{ userId }` al conectarse |
+| `message:new` | `{ conversationId, message }` |
+| `message:read` | `{ conversationId, userId, readAt }` |
+
+Si el WebSocket se cae, el front puede hacer polling con `GET /api/conversations/:id/messages?after=<idDelÚltimo>`.
+
 ### Agregar un endpoint
 
 1. Crea (o usa) la carpeta `src/modules/<modulo>/` con `*.schemas.ts` (zod), `*.service.ts` (lógica con Prisma) y `*.routes.ts`.
@@ -188,7 +200,7 @@ src/
 | 3 — Proyectos | `/projects` (borrador), roles, `publish`, `status`, `cancel`, `/me/projects` | Hecho |
 | 4 — Exploración | `GET /projects` (q, categoryIds, skillIds, availability, status, sort, page, limit) y `GET /projects/:id` | Hecho |
 | 5 — Postulaciones | Postular, `/me/applications`, cancelar, listado del creador con `matchPercent`, aceptar, rechazar | Hecho |
-| 6 — Equipo y mensajería | Equipo, salir/remover, chat con adjuntos y WebSocket | Pendiente |
+| 6 — Equipo y mensajería | `/projects/:id/team`, `leave`, remover miembro, `/conversations` con adjuntos, lectura y WebSocket `/ws` | Hecho |
 | 7 — Notificaciones y reportes | Notificaciones in-app, contadores, reportes | Pendiente |
 | 8 — Administración | Métricas, moderación de reportes, categorías | Pendiente |
 

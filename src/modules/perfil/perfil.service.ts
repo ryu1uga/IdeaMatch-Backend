@@ -80,7 +80,7 @@ export const perfilService = {
 
   async setPhoto(userId: bigint, file: { buffer: Buffer; mime: string }, baseUrl: string) {
     const anterior = await prisma.perfil.findUnique({ where: { usuarioId: userId }, select: { fotoKey: true } });
-    const stored = await storage.save({ buffer: file.buffer, mime: file.mime, folder: "avatars", kind: "image", baseUrl });
+    const stored = await storage.save({ buffer: file.buffer, mime: file.mime, folder: "avatars", kind: "image", maxSide: 512, baseUrl });
     await prisma.perfil.update({ where: { usuarioId: userId }, data: { fotoUrl: stored.url, fotoKey: stored.key } });
     if (anterior?.fotoKey) await storage.remove(anterior.fotoKey);
     return { photoUrl: stored.url };
