@@ -16,6 +16,8 @@ export interface OperationDoc {
   params?: ZodType;
   query?: ZodType;
   body?: ZodType;
+  /** multipart/form-data con un archivo */
+  file?: { field: string; description?: string };
   successStatus: number;
 }
 
@@ -76,6 +78,20 @@ export function buildOpenApiDocument() {
       parameters: [...toParameters(op.params, "path"), ...toParameters(op.query, "query")],
       ...(op.body && {
         requestBody: { required: true, content: { "application/json": { schema: toSchema(op.body) } } },
+      }),
+      ...(op.file && {
+        requestBody: {
+          required: true,
+          content: {
+            "multipart/form-data": {
+              schema: {
+                type: "object",
+                properties: { [op.file.field]: { type: "string", format: "binary", description: op.file.description } },
+                required: [op.file.field],
+              },
+            },
+          },
+        },
       }),
       responses,
     };

@@ -36,6 +36,8 @@ COPY --from=build --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/dist ./dist
 COPY --chown=node:node package.json prisma.config.ts ./
 COPY --chown=node:node prisma ./prisma
+# Carpeta para archivos subidos cuando no se usa Cloudinary
+RUN mkdir -p /app/uploads && chown node:node /app/uploads
 
 USER node
 EXPOSE 3000

@@ -1,7 +1,8 @@
-import type { Request, Response, Router } from "express";
+import type { Request, RequestHandler, Response, Router } from "express";
 import type { z, ZodType } from "zod";
 import { requireAuth } from "../middlewares/auth.js";
 import { registerOperation, type OperationDoc } from "./openapi.js";
+import { singleFile } from "./upload.js";
 
 type Out<T> = T extends ZodType ? z.output<T> : undefined;
 
@@ -29,6 +30,10 @@ export interface RouteDef<P, Q, B> {
   body?: B;
   /** por defecto: 201 en POST, 204 si el handler no devuelve nada, 200 en el resto */
   status?: number;
+  /** multipart/form-data con un archivo (queda en ctx.req.file) */
+  upload?: { field: string; maxBytes: number; description?: string };
+  /** middlewares extra que corren antes de la autenticación (p. ej. rate limit) */
+  middlewares?: RequestHandler[];
 }
 
 /**
@@ -58,10 +63,15 @@ export function defineRoute<
     params: def.params,
     query: def.query,
     body: def.body,
+    file: def.upload && { field: def.upload.field, description: def.upload.description },
     successStatus: defaultStatus,
   });
 
-  const middlewares = auth ? [requireAuth] : [];
+  const middlewares: RequestHandler[] = [
+    ...(def.middlewares ?? []),
+    ...(auth ? [requireAuth] : []),
+    ...(def.upload ? [singleFile(def.upload.field, def.upload.maxBytes)] : []),
+  ];
 
   router[def.method](def.path, ...middlewares, async (req: Request, res: Response) => {
     const ctx = {

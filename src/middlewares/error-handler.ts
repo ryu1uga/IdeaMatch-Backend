@@ -1,5 +1,6 @@
 import type { ErrorRequestHandler, RequestHandler } from "express";
 import { ZodError, z } from "zod";
+import multer from "multer";
 import { Prisma } from "../generated/prisma/client.js";
 import { HttpError } from "../utils/http-error.js";
 import { env } from "../config/env.js";
@@ -66,9 +67,26 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
     return res.status(err.status).json({ code: err.code, message: err.message, details: err.details });
   }
 
+  // Subida de archivos (tamaño excedido, campo inesperado, etc.)
+  if (err instanceof multer.MulterError) {
+    const message =
+      err.code === "LIMIT_FILE_SIZE"
+        ? "El archivo supera el tamaño máximo permitido"
+        : `Archivo inválido: envía un solo archivo en el campo 'file' (${err.code})`;
+    return res.status(400).json({ code: "INVALID_FILE", message });
+  }
+
   // JSON mal formado en el body
   if (err instanceof SyntaxError && "body" in err) {
     return res.status(400).json({ code: "INVALID_JSON", message: "El body no es un JSON válido" });
+  }
+
+  // Errores HTTP de Express y sus middlewares (body demasiado grande, archivo estático, etc.)
+  const httpStatus = (err as { status?: unknown }).status;
+  if (typeof httpStatus === "number" && httpStatus >= 400 && httpStatus < 500) {
+    const code = httpStatus === 404 ? "NOT_FOUND" : httpStatus === 413 ? "PAYLOAD_TOO_LARGE" : "BAD_REQUEST";
+    const message = httpStatus === 404 ? "Recurso no encontrado" : httpStatus === 413 ? "El contenido es demasiado grande" : "Solicitud inválida";
+    return res.status(httpStatus).json({ code, message });
   }
 
   // No encontrado (update/delete sobre un id inexistente)

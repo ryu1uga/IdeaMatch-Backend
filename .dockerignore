@@ -12,3 +12,4 @@ GUIA.md
 docker-compose*.yml
 Dockerfile
 .dockerignore
+uploads

@@ -1,8 +1,8 @@
 import { Router } from "express";
 import { authModule } from "./modules/auth/auth.routes.js";
-import { perfilesModule } from "./modules/perfiles/perfiles.routes.js";
-import { habilidadesModule } from "./modules/habilidades/habilidades.routes.js";
-import { categoriasModule } from "./modules/categorias/categorias.routes.js";
+import { perfilModule } from "./modules/perfil/perfil.routes.js";
+import { catalogosModule } from "./modules/catalogos/catalogos.routes.js";
+import { usuariosModule } from "./modules/usuarios/usuarios.routes.js";
 import { proyectosModule } from "./modules/proyectos/proyectos.routes.js";
 import { rolesProyectoModule } from "./modules/roles-proyecto/roles-proyecto.routes.js";
 import { postulacionesModule } from "./modules/postulaciones/postulaciones.routes.js";
@@ -22,9 +22,9 @@ import { usuarioInsigniasModule } from "./modules/usuario-insignias/usuario-insi
 // los endpoints del contrato del front (docs/API_ENDPOINTS.md del repo IdeaMatch).
 const modules = [
   authModule,
-  perfilesModule,
-  habilidadesModule,
-  categoriasModule,
+  perfilModule,
+  catalogosModule,
+  usuariosModule,
   proyectosModule,
   rolesProyectoModule,
   postulacionesModule,

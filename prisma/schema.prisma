@@ -49,6 +49,8 @@ model Usuario {
   insignias           UsuarioInsignia[]
   tokens              Token[]
   tokensRevocados     TokenRevocado[]
+  habilidades         UsuarioHabilidad[]
+  intereses           UsuarioInteres[]
 
   @@index([estado])
   @@map("usuario")
@@ -60,8 +62,14 @@ model Usuario {
 model Perfil {
   usuarioId              BigInt   @id @map("usuario_id")
   nombreVisible          String   @map("nombre_visible") @db.VarChar(100)
+  titular                String?  @db.VarChar(100) // headline (ocupación o rol profesional)
+  ubicacion              String?  @db.VarChar(100)
   biografia              String?  @db.Text
   fotoUrl                String?  @map("foto_url") @db.VarChar(500)
+  fotoKey                String?  @map("foto_key") @db.VarChar(255) // id en el almacenamiento (para borrar la anterior)
+  linkPortafolio         String?  @map("link_portafolio") @db.VarChar(500)
+  linkLinkedin           String?  @map("link_linkedin") @db.VarChar(500)
+  linkGithub             String?  @map("link_github") @db.VarChar(500)
   disponibilidadHorasSem Int?     @map("disponibilidad_horas_sem") @db.SmallInt // CK 1-80
   fechaActualizacion     DateTime @default(now()) @updatedAt @map("fecha_actualizacion") @db.Timestamptz
 
@@ -80,6 +88,8 @@ model Habilidad {
   tipo   String  @db.VarChar(20) // Tecnica | Interes
   activa Boolean @default(true)
 
+  usuarios UsuarioHabilidad[]
+
   @@map("habilidad")
 }
 
@@ -92,7 +102,8 @@ model Categoria {
   activa        Boolean  @default(true)
   fechaCreacion DateTime @default(now()) @map("fecha_creacion") @db.Timestamptz
 
-  proyectos Proyecto[]
+  proyectos   Proyecto[]
+  interesados UsuarioInteres[]
 
   @@map("categoria")
 }
@@ -392,4 +403,34 @@ model TokenRevocado {
   @@index([expiraEn])
   @@index([usuarioId])
   @@map("token_revocado")
+}
+
+// -----------------------------------------------------------------------------
+// 20. UsuarioHabilidad (Sprint 2 - PUT /me/skills, entre 1 y 15)
+// -----------------------------------------------------------------------------
+model UsuarioHabilidad {
+  usuarioId   BigInt @map("usuario_id")
+  habilidadId BigInt @map("habilidad_id")
+
+  usuario   Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  habilidad Habilidad @relation(fields: [habilidadId], references: [id])
+
+  @@id([usuarioId, habilidadId])
+  @@index([habilidadId])
+  @@map("usuario_habilidad")
+}
+
+// -----------------------------------------------------------------------------
+// 21. UsuarioInteres (Sprint 2 - PUT /me/interests: categorías de interés)
+// -----------------------------------------------------------------------------
+model UsuarioInteres {
+  usuarioId   BigInt @map("usuario_id")
+  categoriaId BigInt @map("categoria_id")
+
+  usuario   Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  categoria Categoria @relation(fields: [categoriaId], references: [id])
+
+  @@id([usuarioId, categoriaId])
+  @@index([categoriaId])
+  @@map("usuario_interes")
 }

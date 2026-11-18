@@ -8,13 +8,15 @@ const prisma = new PrismaClient({
 
 const categorias = ["IA", "Fintech", "Educación", "Salud", "Videojuegos", "Sostenibilidad", "E-commerce"];
 
+// Habilidades técnicas: mismo catálogo que usa el front (INITIAL_SKILLS_CATALOG)
+const habilidadesTecnicas = [
+  "Product Design", "Figma", "UX Research", "Design Systems", "Prototyping", "UI Design",
+  "React", "TypeScript", "Next.js", "Node.js", "Python", "FastAPI", "Tailwind CSS",
+  "PostgreSQL", "MongoDB", "Docker", "Git", "Scrum / Ágil", "Testing / QA",
+  "Product Management", "Data Analysis",
+];
 const habilidades: { nombre: string; tipo: "Tecnica" | "Interes" }[] = [
-  { nombre: "React", tipo: "Tecnica" },
-  { nombre: "Node.js", tipo: "Tecnica" },
-  { nombre: "TypeScript", tipo: "Tecnica" },
-  { nombre: "PostgreSQL", tipo: "Tecnica" },
-  { nombre: "Figma", tipo: "Tecnica" },
-  { nombre: "Python", tipo: "Tecnica" },
+  ...habilidadesTecnicas.map((nombre) => ({ nombre, tipo: "Tecnica" as const })),
   { nombre: "Emprendimiento", tipo: "Interes" },
   { nombre: "Impacto social", tipo: "Interes" },
 ];

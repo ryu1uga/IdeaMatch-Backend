@@ -3,6 +3,7 @@ import { defineRoute } from "../../lib/route.js";
 import { registerTag } from "../../lib/openapi.js";
 import { loginSchema, registerSchema } from "./auth.schemas.js";
 import { authService } from "./auth.service.js";
+import { authRateLimit } from "../../middlewares/rate-limit.js";
 
 const router = Router();
 const base = "/api/auth";
@@ -19,9 +20,11 @@ defineRoute(
     summary: "Registrar usuario",
     description:
       "La cuenta queda activa de inmediato (no hay verificación por correo). Devuelve `201 { token, user }`.\n\n" +
-      "Errores: `409 EMAIL_TAKEN_OR_INVALID` · `400 WEAK_PASSWORD` (≥ 8, una mayúscula y un número).",
+      "Errores: `409 EMAIL_TAKEN_OR_INVALID` · `400 WEAK_PASSWORD` (≥ 8, una mayúscula y un número) · " +
+      "`429 TOO_MANY_REQUESTS`.",
     auth: false,
     body: registerSchema,
+    middlewares: [authRateLimit],
   },
   ({ body }) => authService.register(body),
 );
@@ -37,6 +40,7 @@ defineRoute(
     description: "Devuelve `200 { token, user }`. Error: `401 INVALID_CREDENTIALS` (mismo mensaje si el correo no existe).",
     auth: false,
     body: loginSchema,
+    middlewares: [authRateLimit],
     status: 200,
   },
   ({ body }) => authService.login(body),

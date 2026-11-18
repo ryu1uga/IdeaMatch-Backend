@@ -40,9 +40,16 @@ services:
       JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET en el archivo .env}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1d}
       CORS_ORIGIN: ${CORS_ORIGIN:-*}
+      AUTH_RATE_LIMIT: ${AUTH_RATE_LIMIT:-20}
+      CLOUDINARY_URL: ${CLOUDINARY_URL:-}
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:3000}
       SEED_ON_START: "true"
     ports:
       - "${API_PORT:-3000}:3000"
+    volumes:
+      # Archivos subidos cuando no hay CLOUDINARY_URL
+      - ideamatch_uploads:/app/uploads
 
 volumes:
   ideamatch_pgdata:
+  ideamatch_uploads:
