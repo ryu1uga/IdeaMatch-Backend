@@ -187,7 +187,7 @@ src/
 | 2 — Perfil | `/me/profile`, `/me/profile/photo`, `/me/skills`, `/me/interests`, `/skills`, `/categories`, `/users/:id` | Hecho |
 | 3 — Proyectos | `/projects` (borrador), roles, `publish`, `status`, `cancel`, `/me/projects` | Hecho |
 | 4 — Exploración | `GET /projects` (q, categoryIds, skillIds, availability, status, sort, page, limit) y `GET /projects/:id` | Hecho |
-| 5 — Postulaciones | Postular, cancelar, aceptar, rechazar | Pendiente |
+| 5 — Postulaciones | Postular, `/me/applications`, cancelar, listado del creador con `matchPercent`, aceptar, rechazar | Hecho |
 | 6 — Equipo y mensajería | Equipo, salir/remover, chat con adjuntos y WebSocket | Pendiente |
 | 7 — Notificaciones y reportes | Notificaciones in-app, contadores, reportes | Pendiente |
 | 8 — Administración | Métricas, moderación de reportes, categorías | Pendiente |

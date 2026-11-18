@@ -67,4 +67,9 @@ const POSTULACION_API: Record<string, string> = {
   Rechazada: "rechazada",
   Cancelada_Colaborador: "cancelada",
 };
-export const applicationStatusFromDb = (s: string) => POSTULACION_API[s] ?? s.toLowerCase();
+export const applicationStatusFromDb = (s: string) => (POSTULACION_API[s] ?? s.toLowerCase()) as ApplicationStatus;
+
+export const APPLICATION_STATUS = ["pendiente", "aceptada", "rechazada", "cancelada"] as const;
+export type ApplicationStatus = (typeof APPLICATION_STATUS)[number];
+export const applicationStatusToDb = (s: ApplicationStatus) =>
+  Object.entries(POSTULACION_API).find(([, api]) => api === s)![0];
