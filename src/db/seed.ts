@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../generated/prisma/client.js";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }),
@@ -27,6 +28,33 @@ const insignias = [
   { nombre: "Proyecto completado", descripcion: "Participó en un proyecto cerrado", criterio: "Proyecto en estado Cerrado" },
 ];
 
+/**
+ * Administrador inicial (Sprint 8): si existen ADMIN_EMAIL y ADMIN_PASSWORD en el entorno,
+ * crea esa cuenta como admin, o marca como admin a la cuenta existente (sin tocar su contraseña).
+ */
+async function seedAdmin() {
+  const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  const password = process.env.ADMIN_PASSWORD;
+  if (!email || !password) return;
+  const existe = await prisma.usuario.findUnique({ where: { email }, select: { id: true } });
+  if (existe) {
+    await prisma.usuario.update({ where: { email }, data: { esAdmin: true } });
+  } else {
+    await prisma.usuario.create({
+      data: {
+        email,
+        passwordHash: await bcrypt.hash(password, 10),
+        nombres: "Admin",
+        apellidos: "IdeaMatch",
+        esAdmin: true,
+        estado: "Activo",
+        perfil: { create: { nombreVisible: "Admin IdeaMatch" } },
+      },
+    });
+  }
+  console.log(`Administrador listo: ${email}`);
+}
+
 async function main() {
   for (const nombre of categorias) {
     await prisma.categoria.upsert({ where: { nombre }, update: {}, create: { nombre } });
@@ -37,6 +65,7 @@ async function main() {
   for (const i of insignias) {
     await prisma.insignia.upsert({ where: { nombre: i.nombre }, update: {}, create: i });
   }
+  await seedAdmin();
   console.log("Seed completado");
 }
 

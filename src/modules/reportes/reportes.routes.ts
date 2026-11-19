@@ -6,6 +6,7 @@ import { prisma } from "../../lib/prisma.js";
 import { idParam } from "../../lib/schemas.js";
 import { CATEGORIA_REPORTE } from "../../domain/enums.js";
 import { HttpError } from "../../utils/http-error.js";
+import { esOculto } from "../../domain/proyecto.js";
 
 const router = Router();
 const tag = "Reportes";
@@ -38,7 +39,7 @@ defineRoute(
   },
   async ({ params, userId, body }) => {
     const p = await prisma.proyecto.findUnique({ where: { id: params.id }, select: { creadorId: true, estado: true } });
-    if (!p || p.estado === "Borrador" || p.estado === "Cancelado") {
+    if (!p || esOculto(p.estado)) {
       throw HttpError.notFound("El proyecto no existe o fue eliminado", "PROJECT_NOT_FOUND");
     }
     if (p.creadorId === userId) throw HttpError.conflict("No puedes reportar tu propio proyecto", "CANNOT_REPORT_OWN");

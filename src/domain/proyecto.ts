@@ -7,7 +7,7 @@ import { DEDICACION_ROL, ESTADO_PROYECTO, MODALIDAD_PROYECTO } from "./enums.js"
 export type EstadoProyectoDb = (typeof ESTADO_PROYECTO)[number];
 export type ModalidadDb = (typeof MODALIDAD_PROYECTO)[number];
 
-export const PROJECT_STATUS = ["borrador", "abierto", "en_curso", "pausado", "cerrado", "cancelado"] as const;
+export const PROJECT_STATUS = ["borrador", "abierto", "en_curso", "pausado", "cerrado", "cancelado", "suspendido"] as const;
 export type ProjectStatus = (typeof PROJECT_STATUS)[number];
 
 /** Estados que se pueden pedir en PATCH /projects/:id/status */
@@ -25,8 +25,12 @@ export const statusFromDb = (s: string) => s.toLowerCase() as ProjectStatus;
 export const modalityToDb = (m: Modality) => capitalizar(m) as ModalidadDb;
 export const modalityFromDb = (m: string | null) => (m ? (m.toLowerCase() as Modality) : null);
 
-/** Estados finales: ya no se edita el proyecto ni sus roles */
-export const ESTADOS_FINALES: readonly EstadoProyectoDb[] = ["Cerrado", "Cancelado"];
+/** Estados finales: ya no se edita el proyecto ni sus roles (Suspendido lo pone un admin, Sprint 8) */
+export const ESTADOS_FINALES: readonly EstadoProyectoDb[] = ["Cerrado", "Cancelado", "Suspendido"];
+
+/** Estados que solo ve el creador: no salen en el catálogo ni se puede postular o reportar */
+export const ESTADOS_OCULTOS: readonly EstadoProyectoDb[] = ["Borrador", "Cancelado", "Suspendido"];
+export const esOculto = (estado: string) => ESTADOS_OCULTOS.includes(estado as EstadoProyectoDb);
 
 /**
  * Transiciones válidas con PATCH /projects/:id/status.
@@ -39,6 +43,7 @@ export const TRANSICIONES: Record<EstadoProyectoDb, readonly EstadoProyectoDb[]>
   Pausado: ["Abierto", "En_Curso", "Cerrado"],
   Cerrado: [],
   Cancelado: [],
+  Suspendido: [],
 };
 
 /** Estados visibles en el catálogo público (el resto solo lo ve el creador) */

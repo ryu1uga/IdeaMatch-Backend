@@ -1,6 +1,6 @@
 import type { Request, RequestHandler, Response, Router } from "express";
 import type { z, ZodType } from "zod";
-import { requireAuth } from "../middlewares/auth.js";
+import { requireAdmin, requireAuth } from "../middlewares/auth.js";
 import { registerOperation, type OperationDoc } from "./openapi.js";
 import { singleFile } from "./upload.js";
 
@@ -25,6 +25,8 @@ export interface RouteDef<P, Q, B> {
   description?: string;
   /** true = exige "Authorization: Bearer <token>" (por defecto true) */
   auth?: boolean;
+  /** true = solo administradores (403 ADMIN_ONLY) */
+  admin?: boolean;
   params?: P;
   query?: Q;
   body?: B;
@@ -60,6 +62,7 @@ export function defineRoute<
     summary: def.summary,
     description: def.description,
     auth,
+    admin: def.admin,
     params: def.params,
     query: def.query,
     body: def.body,
@@ -70,6 +73,7 @@ export function defineRoute<
   const middlewares: RequestHandler[] = [
     ...(def.middlewares ?? []),
     ...(auth ? [requireAuth] : []),
+    ...(def.admin ? [requireAdmin] : []),
     ...(def.upload ? [singleFile(def.upload.field, def.upload.maxBytes)] : []),
   ];
 

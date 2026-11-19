@@ -4,7 +4,7 @@
 export const ROL_GLOBAL = ["Creador", "Colaborador"] as const;
 export const ESTADO_USUARIO = ["Activo", "Pendiente_Verificacion", "Verificado", "Suspendido", "Baja"] as const;
 export const TIPO_HABILIDAD = ["Tecnica", "Interes"] as const;
-export const ESTADO_PROYECTO = ["Borrador", "Abierto", "En_Curso", "Pausado", "Cerrado", "Cancelado"] as const;
+export const ESTADO_PROYECTO = ["Borrador", "Abierto", "En_Curso", "Pausado", "Cerrado", "Cancelado", "Suspendido"] as const;
 export const MODALIDAD_PROYECTO = ["Remoto", "Presencial", "Hibrido"] as const;
 export const DEDICACION_ROL = ["5-10", "10-20", "20+"] as const;
 export const ESTADO_POSTULACION = ["Pendiente", "Aceptada", "Rechazada", "Cancelada_Colaborador"] as const;

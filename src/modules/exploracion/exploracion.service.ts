@@ -3,6 +3,7 @@ import { prisma } from "../../lib/prisma.js";
 import { HttpError } from "../../utils/http-error.js";
 import {
   applicationStatusFromDb,
+  esOculto,
   modalityFromDb,
   portada,
   statusFromDb,
@@ -144,8 +145,8 @@ export const exploracionService = {
       },
     });
     const esCreador = p?.creadorId === userId;
-    // Borradores y cancelados solo los ve su creador
-    if (!p || (!esCreador && (p.estado === "Borrador" || p.estado === "Cancelado"))) {
+    // Borradores, cancelados y suspendidos solo los ve su creador
+    if (!p || (!esCreador && esOculto(p.estado))) {
       throw HttpError.notFound("El proyecto no existe o fue eliminado", "PROJECT_NOT_FOUND");
     }
 

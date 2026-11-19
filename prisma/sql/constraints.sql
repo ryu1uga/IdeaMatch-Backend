@@ -26,7 +26,7 @@ ALTER TABLE "habilidad"
 -- ---------- 5. Proyecto -------------------------------------------------------
 ALTER TABLE "proyecto"
   ADD CONSTRAINT "proyecto_estado_ck"
-    CHECK ("estado" IN ('Borrador','Abierto','En_Curso','Pausado','Cerrado','Cancelado')),
+    CHECK ("estado" IN ('Borrador','Abierto','En_Curso','Pausado','Cerrado','Cancelado','Suspendido')),
   ADD CONSTRAINT "proyecto_modalidad_ck"
     CHECK ("modalidad" IS NULL OR "modalidad" IN ('Remoto','Presencial','Hibrido'));
   -- (Sprint 3 agregó 'Borrador' y la modalidad: ver migración 20261118200000_sprint3_proyectos)

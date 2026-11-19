@@ -3,7 +3,7 @@ import { prisma } from "../../lib/prisma.js";
 import { emitToUsers } from "../../lib/realtime.js";
 import { storage } from "../../lib/storage.js";
 import { inicialesProyecto, nombreCompleto, personaSelect, toPersona } from "../../lib/persona.js";
-import { portada, statusFromDb } from "../../domain/proyecto.js";
+import { ESTADOS_FINALES, portada, statusFromDb, type EstadoProyectoDb } from "../../domain/proyecto.js";
 import { HttpError } from "../../utils/http-error.js";
 import { conversacionParticipante, participantes } from "../equipo/acceso.js";
 
@@ -155,7 +155,7 @@ export const conversacionesService = {
     input: { text?: string; file?: { buffer: Buffer; mime: string; size: number; name: string }; baseUrl: string },
   ) {
     const c = await conversacionParticipante(conversationId, userId);
-    if (c.proyecto.estado === "Cerrado" || c.proyecto.estado === "Cancelado") {
+    if (ESTADOS_FINALES.includes(c.proyecto.estado as EstadoProyectoDb)) {
       throw HttpError.conflict("El proyecto está cerrado: el chat es de solo lectura", "PROJECT_CLOSED");
     }
     const text = input.text?.trim() ?? "";

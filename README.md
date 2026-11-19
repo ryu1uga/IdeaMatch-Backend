@@ -100,6 +100,7 @@ Se definen en `.env` (ver `.env.example`). Nunca subas `.env` al repositorio.
 | `CLOUDINARY_URL` | En producción | `cloudinary://API_KEY:API_SECRET@CLOUD_NAME`. Si no está, los archivos se guardan en disco |
 | `UPLOAD_DIR` | No | Carpeta para archivos locales (por defecto `uploads`) |
 | `PUBLIC_URL` | No | URL pública de la API para armar las URLs de archivos locales |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | No | Administrador inicial que crea `npm run db:seed` (si la cuenta existe, solo la marca como admin) |
 | `API_PORT` / `DB_PORT` | No | Puertos publicados por `docker compose` (por defecto 3000 / 5432) |
 
 ### Archivos subidos (foto de perfil, adjuntos)
@@ -107,6 +108,16 @@ Se definen en `.env` (ver `.env.example`). Nunca subas `.env` al repositorio.
 - **Sin `CLOUDINARY_URL`** (desarrollo): se guardan en `uploads/` y se sirven en `http://localhost:3000/uploads/...`.
 - **Con `CLOUDINARY_URL`** (producción): se suben a Cloudinary en la carpeta `ideamatch/`.
   En Render es obligatorio usar Cloudinary porque su disco se borra en cada reinicio.
+
+### Administradores
+
+Las rutas `/api/admin/*` solo responden a administradores (`403 ADMIN_ONLY`). Para tener uno:
+
+- **Al iniciar:** define `ADMIN_EMAIL` y `ADMIN_PASSWORD` en `.env` y ejecuta `npm run db:seed` (con Docker, el seed corre solo al arrancar).
+- **A una cuenta ya registrada:** `npm run admin:promote -- correo@ejemplo.com` (y `--remove` para quitarlo).
+  En el contenedor de producción: `docker compose exec api node dist/db/promote-admin.js correo@ejemplo.com`.
+
+El rol se lee de la BD en cada request: darlo o quitarlo tiene efecto inmediato, sin volver a iniciar sesión.
 
 ---
 
@@ -124,6 +135,7 @@ Se definen en `.env` (ver `.env.example`). Nunca subas `.env` al repositorio.
 | `npm run prisma:studio` | Abre Prisma Studio para ver/editar la BD |
 | `npm run db:seed` | Carga catálogos (idempotente) |
 | `npm run db:reset` | Borra la BD local, migra y ejecuta el seed |
+| `npm run admin:promote -- <correo> [--remove]` | Da o quita el rol de administrador a una cuenta existente |
 | `npm run docker:up` / `docker:down` / `docker:logs` / `docker:reset` | Manejo del entorno completo en Docker |
 
 ---
@@ -203,11 +215,9 @@ Si el WebSocket se cae, el front puede hacer polling con `GET /api/conversations
 | 5 — Postulaciones | Postular, `/me/applications`, cancelar, listado del creador con `matchPercent`, aceptar, rechazar | Hecho |
 | 6 — Equipo y mensajería | `/projects/:id/team`, `leave`, remover miembro, `/conversations` con adjuntos, lectura y WebSocket `/ws` | Hecho |
 | 7 — Notificaciones y reportes | `/notifications` (+ WS `notification:new`), `read`, `read-all`, `/me/counters`, `/projects/:id/reports` | Hecho |
-| 8 — Administración | Métricas, moderación de reportes, categorías | Pendiente |
+| 8 — Administración | `/admin/metrics`, `/admin/reports` (+ `resolve`), `/admin/categories` | Hecho |
 
-Estados de un proyecto: `borrador` → (`publish`) → `abierto` ⇄ `en_curso` ⇄ `pausado` → `cerrado`; `cancelado` desde cualquier estado no final. Las transiciones están en `src/domain/proyecto.ts`.
-
-Los módulos CRUD genéricos que aún aparecen en Swagger (proyectos, postulaciones, mensajes, etc.) son del andamiaje inicial y se reemplazan en el sprint correspondiente.
+Estados de un proyecto: `borrador` → (`publish`) → `abierto` ⇄ `en_curso` ⇄ `pausado` → `cerrado`; `cancelado` desde cualquier estado no final; `suspendido` lo pone un administrador al resolver un reporte. Las transiciones están en `src/domain/proyecto.ts`.
 
 ---
 

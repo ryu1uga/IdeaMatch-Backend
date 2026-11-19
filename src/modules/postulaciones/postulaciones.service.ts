@@ -4,6 +4,8 @@ import { HttpError } from "../../utils/http-error.js";
 import {
   applicationStatusFromDb,
   applicationStatusToDb,
+  esOculto,
+  ESTADOS_OCULTOS,
   portada,
   statusFromDb,
   type ApplicationStatus,
@@ -68,12 +70,12 @@ export const postulacionesService = {
       select: { nombre: true, vacantesDisponibles: true, proyecto: { select: { estado: true, creadorId: true, titulo: true } } },
     });
     if (!rol) {
-      const existe = await prisma.proyecto.count({ where: { id: projectId, estado: { notIn: ["Borrador", "Cancelado"] } } });
+      const existe = await prisma.proyecto.count({ where: { id: projectId, estado: { notIn: [...ESTADOS_OCULTOS] } } });
       throw existe
         ? HttpError.notFound("El rol no existe en este proyecto", "ROLE_NOT_FOUND")
         : HttpError.notFound("El proyecto no existe o fue eliminado", "PROJECT_NOT_FOUND");
     }
-    if (rol.proyecto.estado === "Borrador" || rol.proyecto.estado === "Cancelado") {
+    if (esOculto(rol.proyecto.estado)) {
       throw HttpError.notFound("El proyecto no existe o fue eliminado", "PROJECT_NOT_FOUND");
     }
     if (rol.proyecto.creadorId === userId) {

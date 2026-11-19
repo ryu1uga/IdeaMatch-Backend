@@ -43,6 +43,8 @@ services:
       AUTH_RATE_LIMIT: ${AUTH_RATE_LIMIT:-20}
       CLOUDINARY_URL: ${CLOUDINARY_URL:-}
       PUBLIC_URL: ${PUBLIC_URL:-http://localhost:3000}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       SEED_ON_START: "true"
     ports:
       - "${API_PORT:-3000}:3000"

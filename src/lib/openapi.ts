@@ -13,6 +13,7 @@ export interface OperationDoc {
   summary: string;
   description?: string;
   auth: boolean;
+  admin?: boolean;
   params?: ZodType;
   query?: ZodType;
   body?: ZodType;
@@ -87,6 +88,7 @@ export function buildOpenApiDocument() {
       400: errorResponse("Datos inválidos o regla de negocio violada"),
     };
     if (op.auth) responses[401] = errorResponse("No autenticado");
+    if (op.admin) responses[403] = errorResponse("Solo administradores (ADMIN_ONLY)");
     if (op.params) responses[404] = errorResponse("No encontrado");
     if (op.method !== "get") responses[409] = errorResponse("Conflicto (duplicado o referencia inválida)");
 

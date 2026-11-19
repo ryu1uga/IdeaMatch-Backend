@@ -11,6 +11,8 @@ export interface AuthPayload {
   jti: string; // id único del token (para revocarlo en el logout)
   email: string;
   exp: number; // segundos desde epoch (lo agrega jsonwebtoken)
+  /** se lee de la BD en cada request (no del token), para que quitar el rol tenga efecto inmediato */
+  isAdmin?: boolean;
 }
 
 declare module "express-serve-static-core" {
@@ -31,13 +33,13 @@ export async function verifyAccessToken(token: string): Promise<AuthPayload> {
 
   const [revocado, usuario] = await Promise.all([
     prisma.tokenRevocado.findUnique({ where: { jti: payload.jti }, select: { jti: true } }),
-    prisma.usuario.findUnique({ where: { id: BigInt(payload.sub) }, select: { estado: true } }),
+    prisma.usuario.findUnique({ where: { id: BigInt(payload.sub) }, select: { estado: true, esAdmin: true } }),
   ]);
   if (revocado || !usuario) throw HttpError.unauthorized("La sesión ya no es válida", "INVALID_TOKEN");
   if (ESTADOS_USUARIO_BLOQUEADOS.includes(usuario.estado)) {
     throw HttpError.forbidden("La cuenta está suspendida o dada de baja", "ACCOUNT_DISABLED");
   }
-  return payload;
+  return { ...payload, isAdmin: usuario.esAdmin };
 }
 
 /** Exige un header "Authorization: Bearer <token>" válido. */
@@ -45,5 +47,11 @@ export const requireAuth: RequestHandler = async (req, _res, next) => {
   const header = req.headers.authorization;
   if (!header?.startsWith("Bearer ")) throw HttpError.unauthorized("Falta el token");
   req.user = await verifyAccessToken(header.slice(7));
+  next();
+};
+
+/** Exige que el usuario autenticado sea administrador (va después de requireAuth) */
+export const requireAdmin: RequestHandler = (req, _res, next) => {
+  if (!req.user?.isAdmin) throw HttpError.forbidden("Solo para administradores", "ADMIN_ONLY");
   next();
 };

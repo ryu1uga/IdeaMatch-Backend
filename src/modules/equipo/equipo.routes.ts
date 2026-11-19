@@ -6,6 +6,7 @@ import { prisma } from "../../lib/prisma.js";
 import { idParam } from "../../lib/schemas.js";
 import { personaSelect, toPersona } from "../../lib/persona.js";
 import { HttpError } from "../../utils/http-error.js";
+import { esOculto } from "../../domain/proyecto.js";
 import { notificar } from "../notificaciones/notificaciones.service.js";
 
 const router = Router();
@@ -71,7 +72,7 @@ defineRoute(
         },
       },
     });
-    if (!p || (p.creadorId !== userId && (p.estado === "Borrador" || p.estado === "Cancelado"))) {
+    if (!p || (p.creadorId !== userId && esOculto(p.estado))) {
       throw HttpError.notFound("El proyecto no existe o fue eliminado", "PROJECT_NOT_FOUND");
     }
     const lider = toPersona(p.creador);
