@@ -1,0 +1,37 @@
+# Typecheck, pruebas de integración y build en cada push y pull request.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: Typecheck, pruebas y build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # El postinstall ejecuta `prisma generate`
+      - run: npm ci
+
+      - run: npm run typecheck
+
+      # PostgreSQL en memoria (PGlite) con todas las migraciones: no necesita servicio de BD
+      - run: npm test
+
+      - run: npm run build
+
+  docker:
+    name: Imagen Docker
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t ideamatch-backend:ci .

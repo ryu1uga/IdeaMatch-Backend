@@ -128,6 +128,7 @@ El rol se lee de la BD en cada request: darlo o quitarlo tiene efecto inmediato,
 | `npm run dev` | API en modo desarrollo con recarga automática (tsx watch) |
 | `npm run build` / `npm start` | Compila a `dist/` y ejecuta la versión compilada |
 | `npm run typecheck` | Revisa tipos sin compilar |
+| `npm test` | Pruebas de integración de todos los sprints (`npm test -- sprint5` para uno solo) |
 | `npm run db:up` | Levanta solo PostgreSQL en Docker |
 | `npm run prisma:deploy` | Aplica las migraciones pendientes (no crea migraciones nuevas) |
 | `npm run prisma:migrate` | `prisma migrate dev`: crea una migración nueva a partir de cambios en `schema.prisma` |
@@ -137,6 +138,23 @@ El rol se lee de la BD en cada request: darlo o quitarlo tiene efecto inmediato,
 | `npm run db:reset` | Borra la BD local, migra y ejecuta el seed |
 | `npm run admin:promote -- <correo> [--remove]` | Da o quita el rol de administrador a una cuenta existente |
 | `npm run docker:up` / `docker:down` / `docker:logs` / `docker:reset` | Manejo del entorno completo en Docker |
+
+---
+
+## Pruebas
+
+```bash
+npm test                 # todas (unos 30 s)
+npm test -- sprint5      # solo los archivos que contengan "sprint5"
+```
+
+Son pruebas de integración en `tests/sprintN.test.mts`: levantan la API y la recorren con peticiones HTTP reales (y WebSocket en el Sprint 6). El runner `tests/run.mjs` crea para cada archivo un **PostgreSQL en memoria (PGlite)** con todas las migraciones aplicadas, así que no necesitas Docker ni tocar tu BD local, y funciona igual en Windows y en CI.
+
+Cuando agregues un endpoint, suma sus casos al archivo del sprint correspondiente (o crea `tests/<nombre>.test.mts`).
+
+### CI
+
+`.github/workflows/ci.yml` corre en cada push y pull request: `npm ci`, `npm run typecheck`, `npm test`, `npm run build` y además construye la imagen Docker. Si algo falla, el PR queda marcado en rojo.
 
 ---
 
@@ -170,9 +188,14 @@ src/
     storage.ts           Almacenamiento de archivos (local / Cloudinary)
     upload.ts            Subida multipart y validación del tipo real del archivo
     prisma.ts            Cliente de Prisma
+    realtime.ts          WebSocket /ws (eventos en tiempo real)
   middlewares/           auth (JWT), rate limit, manejo de errores
   modules/<modulo>/      Rutas, esquemas y servicios de cada funcionalidad
-  db/seed.ts             Catálogos iniciales
+  db/seed.ts             Catálogos iniciales (y admin inicial)
+  db/promote-admin.ts    Dar o quitar el rol de administrador
+tests/
+  run.mjs                Runner: BD en memoria por archivo + tsx
+  sprintN.test.mts       Pruebas de integración por sprint
 ```
 
 ### Convenciones de la API
