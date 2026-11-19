@@ -270,6 +270,7 @@ model Notificacion {
   mensaje        String    @db.VarChar(500)
   entidadRefTipo String?   @map("entidad_ref_tipo") @db.VarChar(20)
   entidadRefId   BigInt?   @map("entidad_ref_id")
+  datos          Json?     @db.JsonB // payload para el front (projectId, roleName, etc.)
   leida          Boolean   @default(false)
   fechaCreacion  DateTime  @default(now()) @map("fecha_creacion") @db.Timestamptz
   fechaLectura   DateTime? @map("fecha_lectura") @db.Timestamptz
@@ -309,7 +310,9 @@ model Reporte {
   reportanteId    BigInt    @map("reportante_id")
   tipoEntidad     String    @map("tipo_entidad") @db.VarChar(20)
   idEntidad       BigInt    @map("id_entidad")
-  motivo          String    @db.Text
+  categoria       String    @db.VarChar(30) // spam | contenido_enganoso | propiedad_intelectual | otro
+  severidad       String    @db.VarChar(10) // alta | media | baja (se deriva de la categoría)
+  motivo          String    @db.Text // descripción del reportante
   estado          String    @default("Pendiente") @db.VarChar(20)
   adminId         BigInt?   @map("admin_id")
   resolucion      String?   @db.Text
@@ -321,6 +324,7 @@ model Reporte {
 
   @@unique([reportanteId, tipoEntidad, idEntidad])
   @@index([estado])
+  @@index([severidad])
   @@index([tipoEntidad, idEntidad])
   @@map("reporte")
 }

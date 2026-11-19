@@ -179,6 +179,7 @@ El chat usa un WebSocket en `ws://localhost:3000/ws?token=<jwt>` (en producción
 | `ready` | `{ userId }` al conectarse |
 | `message:new` | `{ conversationId, message }` |
 | `message:read` | `{ conversationId, userId, readAt }` |
+| `notification:new` | `{ notification }` (misma forma que en `GET /api/notifications`) |
 
 Si el WebSocket se cae, el front puede hacer polling con `GET /api/conversations/:id/messages?after=<idDelÚltimo>`.
 
@@ -201,7 +202,7 @@ Si el WebSocket se cae, el front puede hacer polling con `GET /api/conversations
 | 4 — Exploración | `GET /projects` (q, categoryIds, skillIds, availability, status, sort, page, limit) y `GET /projects/:id` | Hecho |
 | 5 — Postulaciones | Postular, `/me/applications`, cancelar, listado del creador con `matchPercent`, aceptar, rechazar | Hecho |
 | 6 — Equipo y mensajería | `/projects/:id/team`, `leave`, remover miembro, `/conversations` con adjuntos, lectura y WebSocket `/ws` | Hecho |
-| 7 — Notificaciones y reportes | Notificaciones in-app, contadores, reportes | Pendiente |
+| 7 — Notificaciones y reportes | `/notifications` (+ WS `notification:new`), `read`, `read-all`, `/me/counters`, `/projects/:id/reports` | Hecho |
 | 8 — Administración | Métricas, moderación de reportes, categorías | Pendiente |
 
 Estados de un proyecto: `borrador` → (`publish`) → `abierto` ⇄ `en_curso` ⇄ `pausado` → `cerrado`; `cancelado` desde cualquier estado no final. Las transiciones están en `src/domain/proyecto.ts`.

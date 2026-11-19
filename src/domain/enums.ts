@@ -16,11 +16,20 @@ export const TIPO_NOTIFICACION = [
   "Cambio_Proyecto",
   "Reporte_Resuelto",
   "Insignia_Obtenida",
+  // Sprint 7
+  "Postulacion_Aceptada",
+  "Postulacion_Rechazada",
+  "Miembro_Retirado",
+  "Miembro_Removido",
+  "Proyecto_Cancelado",
+  "Proyecto_Suspendido",
 ] as const;
 export const ENTIDAD_REF_NOTIFICACION = ["Proyecto", "Postulacion", "Mensaje", "Reporte", "Insignia"] as const;
 export const ESTADO_EMAIL = ["Pendiente", "Enviado", "Fallido"] as const;
 export const TIPO_ENTIDAD_REPORTE = ["Proyecto", "Mensaje", "Usuario"] as const;
 export const ESTADO_REPORTE = ["Pendiente", "En_Revision", "Resuelto", "Desestimado"] as const;
+export const CATEGORIA_REPORTE = ["spam", "contenido_enganoso", "propiedad_intelectual", "otro"] as const;
+export const SEVERIDAD_REPORTE = ["alta", "media", "baja"] as const;
 export const PLATAFORMA_ENTREGA = ["GitHub", "Figma", "Trello", "Otro"] as const;
 export const TIPO_TOKEN = ["Verificacion_Email", "Reset_Password"] as const;
 

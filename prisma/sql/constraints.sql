@@ -93,7 +93,10 @@ ALTER TABLE "adjunto"
 ALTER TABLE "notificacion"
   ADD CONSTRAINT "notificacion_tipo_ck"
     CHECK ("tipo" IN ('Nueva_Postulacion','Cambio_Estado_Postulacion','Nuevo_Mensaje',
-                      'Cambio_Proyecto','Reporte_Resuelto','Insignia_Obtenida')),
+                      'Cambio_Proyecto','Reporte_Resuelto','Insignia_Obtenida',
+                      'Postulacion_Aceptada','Postulacion_Rechazada','Miembro_Retirado',
+                      'Miembro_Removido','Proyecto_Cancelado','Proyecto_Suspendido')),
+  -- (Sprint 7 agregó los últimos seis tipos)
   ADD CONSTRAINT "notificacion_entidad_ref_tipo_ck"
     CHECK ("entidad_ref_tipo" IS NULL OR
            "entidad_ref_tipo" IN ('Proyecto','Postulacion','Mensaje','Reporte','Insignia'));
@@ -110,7 +113,11 @@ ALTER TABLE "reporte"
   ADD CONSTRAINT "reporte_tipo_entidad_ck"
     CHECK ("tipo_entidad" IN ('Proyecto','Mensaje','Usuario')),
   ADD CONSTRAINT "reporte_estado_ck"
-    CHECK ("estado" IN ('Pendiente','En_Revision','Resuelto','Desestimado'));
+    CHECK ("estado" IN ('Pendiente','En_Revision','Resuelto','Desestimado')),
+  ADD CONSTRAINT "reporte_categoria_ck"
+    CHECK ("categoria" IN ('spam','contenido_enganoso','propiedad_intelectual','otro')),
+  ADD CONSTRAINT "reporte_severidad_ck"
+    CHECK ("severidad" IN ('alta','media','baja'));
 
 -- ---------- 15. EntregaProyecto -----------------------------------------------
 ALTER TABLE "entrega_proyecto"

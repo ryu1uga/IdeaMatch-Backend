@@ -8,6 +8,7 @@ import {
   statusFromDb,
   type ApplicationStatus,
 } from "../../domain/proyecto.js";
+import { notificar } from "../notificaciones/notificaciones.service.js";
 
 /** Una postulación pendiente se marca como nueva durante estas horas */
 const HORAS_NUEVA = 72;
@@ -45,7 +46,12 @@ function toApplicationDto(a: ApplicationRow) {
 async function postulacionDelCreador(id: bigint, userId: bigint) {
   const a = await prisma.postulacion.findUnique({
     where: { id },
-    select: { ...applicationSelect, usuarioId: true, proyecto: { select: { creadorId: true, estado: true } } },
+    select: {
+      ...applicationSelect,
+      usuarioId: true,
+      rolProyecto: { select: { nombre: true } },
+      proyecto: { select: { creadorId: true, estado: true, titulo: true } },
+    },
   });
   if (!a) throw HttpError.notFound("La postulación no existe", "APPLICATION_NOT_FOUND");
   if (a.proyecto.creadorId !== userId) {
@@ -59,7 +65,7 @@ export const postulacionesService = {
   async apply(projectId: bigint, roleId: bigint, userId: bigint, note: string | null) {
     const rol = await prisma.rolProyecto.findFirst({
       where: { id: roleId, proyectoId: projectId },
-      select: { vacantesDisponibles: true, proyecto: { select: { estado: true, creadorId: true } } },
+      select: { nombre: true, vacantesDisponibles: true, proyecto: { select: { estado: true, creadorId: true, titulo: true } } },
     });
     if (!rol) {
       const existe = await prisma.proyecto.count({ where: { id: projectId, estado: { notIn: ["Borrador", "Cancelado"] } } });
@@ -104,6 +110,23 @@ export const postulacionesService = {
           data: { ...data, usuarioId: userId, proyectoId: projectId },
           select: applicationSelect,
         });
+
+    const yo = await prisma.usuario.findUniqueOrThrow({ where: { id: userId }, select: { nombres: true, apellidos: true } });
+    const nombre = `${yo.nombres} ${yo.apellidos}`.trim();
+    await notificar([rol.proyecto.creadorId], {
+      tipo: "Nueva_Postulacion",
+      mensaje: `${nombre} postuló al rol ${rol.nombre} en ${rol.proyecto.titulo}`,
+      ref: { tipo: "Postulacion", id: a.id },
+      payload: {
+        projectId,
+        projectName: rol.proyecto.titulo,
+        roleId,
+        roleName: rol.nombre,
+        applicationId: a.id,
+        applicantId: userId,
+        applicantName: nombre,
+      },
+    });
     return { application: toApplicationDto(a) };
   },
 
@@ -309,17 +332,29 @@ export const postulacionesService = {
       await tx.miembroEquipo.create({ data: { usuarioId: a.usuarioId, rolProyectoId: a.rolProyectoId } });
       return tx.postulacion.findUniqueOrThrow({ where: { id }, select: applicationSelect });
     });
+    await notificar([a.usuarioId], {
+      tipo: "Postulacion_Aceptada",
+      mensaje: `¡Te aceptaron como ${a.rolProyecto.nombre} en ${a.proyecto.titulo}!`,
+      ref: { tipo: "Postulacion", id },
+      payload: { projectId: a.proyectoId, projectName: a.proyecto.titulo, roleId: a.rolProyectoId, roleName: a.rolProyecto.nombre, applicationId: id },
+    });
     return { application: toApplicationDto(updated) };
   },
 
   async reject(id: bigint, userId: bigint) {
-    await postulacionDelCreador(id, userId);
+    const pa = await postulacionDelCreador(id, userId);
     const resuelta = await prisma.postulacion.updateMany({
       where: { id, estado: "Pendiente" },
       data: { estado: "Rechazada", fechaResolucion: new Date() },
     });
     if (!resuelta.count) throw HttpError.conflict("La postulación ya fue resuelta", "NOT_PENDING");
     const a = await prisma.postulacion.findUniqueOrThrow({ where: { id }, select: applicationSelect });
+    await notificar([pa.usuarioId], {
+      tipo: "Postulacion_Rechazada",
+      mensaje: `Tu postulación a ${pa.rolProyecto.nombre} en ${pa.proyecto.titulo} no fue seleccionada`,
+      ref: { tipo: "Postulacion", id },
+      payload: { projectId: pa.proyectoId, projectName: pa.proyecto.titulo, roleId: pa.rolProyectoId, roleName: pa.rolProyecto.nombre, applicationId: id, reason: "rejected" },
+    });
     return { application: toApplicationDto(a) };
   },
 };

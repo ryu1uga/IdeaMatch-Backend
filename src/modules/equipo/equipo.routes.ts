@@ -6,6 +6,7 @@ import { prisma } from "../../lib/prisma.js";
 import { idParam } from "../../lib/schemas.js";
 import { personaSelect, toPersona } from "../../lib/persona.js";
 import { HttpError } from "../../utils/http-error.js";
+import { notificar } from "../notificaciones/notificaciones.service.js";
 
 const router = Router();
 const base = "/api";
@@ -26,7 +27,12 @@ async function darDeBaja(miembroId: bigint, rolId: bigint, estado: "Retirado" | 
 function membresiaActiva(projectId: bigint, userId: bigint) {
   return prisma.miembroEquipo.findFirst({
     where: { usuarioId: userId, estado: "Activo", rolProyecto: { proyectoId: projectId } },
-    select: { id: true, rolProyectoId: true },
+    select: {
+      id: true,
+      rolProyectoId: true,
+      rolProyecto: { select: { nombre: true } },
+      usuario: { select: { nombres: true, apellidos: true } },
+    },
   });
 }
 
@@ -112,12 +118,19 @@ defineRoute(
     params: z.object({ id: idParam }),
   },
   async ({ params, userId }) => {
-    const p = await prisma.proyecto.findUnique({ where: { id: params.id }, select: { creadorId: true } });
+    const p = await prisma.proyecto.findUnique({ where: { id: params.id }, select: { creadorId: true, titulo: true } });
     if (!p) throw HttpError.notFound("El proyecto no existe", "PROJECT_NOT_FOUND");
     if (p.creadorId === userId) throw HttpError.conflict("El creador no puede salir de su propio proyecto", "OWNER_CANNOT_LEAVE");
     const m = await membresiaActiva(params.id, userId);
     if (!m) throw HttpError.conflict("No eres parte del equipo de este proyecto", "NOT_MEMBER");
     await darDeBaja(m.id, m.rolProyectoId, "Retirado");
+    const nombre = `${m.usuario.nombres} ${m.usuario.apellidos}`.trim();
+    await notificar([p.creadorId], {
+      tipo: "Miembro_Retirado",
+      mensaje: `${nombre} salió del equipo de ${p.titulo} (${m.rolProyecto.nombre})`,
+      ref: { tipo: "Proyecto", id: params.id },
+      payload: { projectId: params.id, projectName: p.titulo, userId, userName: nombre, roleId: m.rolProyectoId, roleName: m.rolProyecto.nombre },
+    });
   },
 );
 
@@ -136,12 +149,18 @@ defineRoute(
     body: z.object({ reason: z.string().trim().min(1, "Indica el motivo").max(500).meta({ example: "Inactividad" }) }),
   },
   async ({ params, userId, body }) => {
-    const p = await prisma.proyecto.findUnique({ where: { id: params.id }, select: { creadorId: true } });
+    const p = await prisma.proyecto.findUnique({ where: { id: params.id }, select: { creadorId: true, titulo: true } });
     if (!p) throw HttpError.notFound("El proyecto no existe", "PROJECT_NOT_FOUND");
     if (p.creadorId !== userId) throw HttpError.forbidden("Solo el creador puede remover miembros", "NOT_OWNER");
     const m = await membresiaActiva(params.id, params.userId);
     if (!m) throw HttpError.notFound("Esa persona no es miembro activo del proyecto", "MEMBER_NOT_FOUND");
     await darDeBaja(m.id, m.rolProyectoId, "Removido", body.reason);
+    await notificar([params.userId], {
+      tipo: "Miembro_Removido",
+      mensaje: `Fuiste removido del equipo de ${p.titulo}. Motivo: ${body.reason}`,
+      ref: { tipo: "Proyecto", id: params.id },
+      payload: { projectId: params.id, projectName: p.titulo, roleId: m.rolProyectoId, roleName: m.rolProyecto.nombre, reason: body.reason },
+    });
   },
 );
 

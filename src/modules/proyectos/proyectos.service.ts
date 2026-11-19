@@ -12,6 +12,7 @@ import {
 } from "../../domain/proyecto.js";
 import type { CreateProjectInput, CreateRoleInput, UpdateProjectInput, UpdateRoleInput } from "./proyectos.schemas.js";
 import { projectSelect, roleSelect, toProjectDto, toRoleDto } from "./proyectos.dto.js";
+import { notificar } from "../notificaciones/notificaciones.service.js";
 
 type Tx = Prisma.TransactionClient;
 
@@ -65,6 +66,38 @@ const uniq = (ids: bigint[]) => [...new Set(ids.map(String))].map((x) => BigInt(
 
 async function getProject(id: bigint, db: Tx | typeof prisma = prisma) {
   return toProjectDto(await db.proyecto.findUniqueOrThrow({ where: { id }, select: projectSelect }));
+}
+
+/** Miembros activos y postulantes pendientes (a quienes se avisa de un cambio de estado) */
+async function afectados(proyectoId: bigint) {
+  const [p, pendientes] = await Promise.all([
+    prisma.proyecto.findUniqueOrThrow({
+      where: { id: proyectoId },
+      select: { titulo: true, roles: { select: { miembros: { where: { estado: "Activo" }, select: { usuarioId: true } } } } },
+    }),
+    prisma.postulacion.findMany({
+      where: { proyectoId, estado: "Pendiente" },
+      select: { id: true, usuarioId: true, rolProyectoId: true, rolProyecto: { select: { nombre: true } } },
+    }),
+  ]);
+  return { titulo: p.titulo, miembros: p.roles.flatMap((r) => r.miembros.map((m) => m.usuarioId)), pendientes };
+}
+
+/** Avisa a cada postulante pendiente que su postulación se cerró por el estado del proyecto */
+async function avisarPendientesCerradas(
+  proyectoId: bigint,
+  titulo: string,
+  pendientes: Awaited<ReturnType<typeof afectados>>["pendientes"],
+  reason: "project_closed" | "project_cancelled",
+) {
+  for (const a of pendientes) {
+    await notificar([a.usuarioId], {
+      tipo: "Postulacion_Rechazada",
+      mensaje: `Tu postulación a ${a.rolProyecto.nombre} en ${titulo} se cerró porque el proyecto fue ${reason === "project_closed" ? "cerrado" : "cancelado"}`,
+      ref: { tipo: "Postulacion", id: a.id },
+      payload: { projectId: proyectoId, projectName: titulo, roleId: a.rolProyectoId, roleName: a.rolProyecto.nombre, applicationId: a.id, reason },
+    });
+  }
 }
 
 /** Rechaza las postulaciones pendientes (al cerrar o cancelar el proyecto) */
@@ -278,11 +311,20 @@ export const proyectosService = {
         allowed: TRANSICIONES[p.estado].map(statusFromDb),
       });
     }
-    return prisma.$transaction(async (tx) => {
+    const af = await afectados(id);
+    const res = await prisma.$transaction(async (tx) => {
       await tx.proyecto.update({ where: { id }, data: { estado: destino } });
       if (destino === "Cerrado") await cerrarPostulacionesPendientes(tx, id);
       return { project: await getProject(id, tx) };
     });
+    await notificar(af.miembros, {
+      tipo: "Cambio_Proyecto",
+      mensaje: `${af.titulo} cambió de estado a ${status.replace("_", " ")}`,
+      ref: { tipo: "Proyecto", id },
+      payload: { projectId: id, projectName: af.titulo, from: statusFromDb(p.estado), status },
+    });
+    if (destino === "Cerrado") await avisarPendientesCerradas(id, af.titulo, af.pendientes, "project_closed");
+    return res;
   },
 
   async cancel(id: bigint, userId: bigint) {
@@ -290,10 +332,19 @@ export const proyectosService = {
     if (ESTADOS_FINALES.includes(p.estado)) {
       throw HttpError.conflict(`El proyecto ya está ${statusFromDb(p.estado)}`, "INVALID_TRANSITION");
     }
-    return prisma.$transaction(async (tx) => {
+    const af = await afectados(id);
+    const res = await prisma.$transaction(async (tx) => {
       await tx.proyecto.update({ where: { id }, data: { estado: "Cancelado" } });
       await cerrarPostulacionesPendientes(tx, id);
       return { project: await getProject(id, tx) };
     });
+    await notificar(af.miembros, {
+      tipo: "Proyecto_Cancelado",
+      mensaje: `El proyecto ${af.titulo} fue cancelado`,
+      ref: { tipo: "Proyecto", id },
+      payload: { projectId: id, projectName: af.titulo, status: "cancelado" },
+    });
+    await avisarPendientesCerradas(id, af.titulo, af.pendientes, "project_cancelled");
+    return res;
   },
 };

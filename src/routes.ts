@@ -9,7 +9,6 @@ import { postulacionesModule } from "./modules/postulaciones/postulaciones.route
 import { equipoModule } from "./modules/equipo/equipo.routes.js";
 import { conversacionesModule } from "./modules/conversaciones/conversaciones.routes.js";
 import { notificacionesModule } from "./modules/notificaciones/notificaciones.routes.js";
-import { notificacionesEmailModule } from "./modules/notificaciones-email/notificaciones-email.routes.js";
 import { reportesModule } from "./modules/reportes/reportes.routes.js";
 import { entregasModule } from "./modules/entregas/entregas.routes.js";
 import { insigniasModule } from "./modules/insignias/insignias.routes.js";
@@ -29,7 +28,6 @@ const modules = [
   equipoModule,
   conversacionesModule,
   notificacionesModule,
-  notificacionesEmailModule,
   reportesModule,
   entregasModule,
   insigniasModule,
