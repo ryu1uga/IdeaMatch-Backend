@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../generated/prisma/client.js";
+import { pgConfig } from "../lib/db-config.js";
 
 // Da (o quita) el rol de administrador a una cuenta existente.
 //   npm run admin:promote -- correo@ejemplo.com
@@ -13,7 +14,9 @@ if (!email) {
   process.exit(1);
 }
 
-const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }) });
+const prisma = new PrismaClient({
+  adapter: new PrismaPg(pgConfig(process.env.DATABASE_URL!, process.env.DATABASE_CA_CERT)),
+});
 const esAdmin = flag !== "--remove";
 
 prisma.usuario

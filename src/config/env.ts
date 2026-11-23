@@ -10,6 +10,8 @@ const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().int().positive().default(3000),
   DATABASE_URL: z.string().min(1, "DATABASE_URL es obligatorio"),
+  // Certificado CA (PEM) para validar el SSL de la BD, p. ej. el de Supabase (opcional)
+  DATABASE_CA_CERT: opcional,
   JWT_SECRET: z.string().min(32, "JWT_SECRET debe tener al menos 32 caracteres"),
   JWT_EXPIRES_IN: z.string().default("1d"),
   CORS_ORIGIN: z.string().default("*"),

@@ -1,10 +1,11 @@
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../generated/prisma/client.js";
+import { pgConfig } from "../lib/db-config.js";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient({
-  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }),
+  adapter: new PrismaPg(pgConfig(process.env.DATABASE_URL!, process.env.DATABASE_CA_CERT)),
 });
 
 const categorias = ["IA", "Fintech", "Educación", "Salud", "Videojuegos", "Sostenibilidad", "E-commerce"];

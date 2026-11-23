@@ -90,7 +90,8 @@ Se definen en `.env` (ver `.env.example`). Nunca subas `.env` al repositorio.
 
 | Variable | Obligatoria | Descripción |
 |---|---|---|
-| `DATABASE_URL` | Sí | Cadena de conexión a PostgreSQL |
+| `DATABASE_URL` | Sí | Cadena de conexión a PostgreSQL. El SSL se toma de `sslmode` (ver Despliegue) |
+| `DATABASE_CA_CERT` | No | Certificado CA de la BD (PEM) para validar el SSL, p. ej. el de Supabase |
 | `JWT_SECRET` | Sí | Secreto para firmar los JWT (mínimo 32 caracteres) |
 | `JWT_EXPIRES_IN` | No | Duración del token (por defecto `1d`) |
 | `PORT` | No | Puerto de la API (por defecto `3000`) |
@@ -244,6 +245,50 @@ Estados de un proyecto: `borrador` → (`publish`) → `abierto` ⇄ `en_curso` 
 
 ---
 
+## Despliegue (Render + Supabase)
+
+### 1. Base de datos en Supabase
+
+1. Crea el proyecto en una región cercana a la del servicio de Render (por ejemplo, ambos en el este de EE. UU.).
+2. En **Connect**, copia la cadena del **Session pooler (puerto 5432)** y agrégale `?sslmode=require`:
+   ```
+   postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres?sslmode=require
+   ```
+   - No uses la conexión directa (`db.<ref>.supabase.co`): es IPv6 y Render no la alcanza.
+   - No uses el Transaction pooler (6543): las migraciones de Prisma necesitan una sesión estable.
+   - Si la contraseña tiene caracteres especiales, codifícalos para URL (`@` → `%40`, etc.).
+3. Desactiva la **Data API** en la configuración del proyecto. La API usa Prisma con conexión directa a Postgres; dejar la Data API activa expone las tablas de `public` (sin RLS).
+
+**SSL:** `node-postgres` trata `sslmode=require` como `verify-full`, y el certificado de Supabase no está entre los CA de Node. `src/lib/db-config.ts` interpreta `sslmode` como `psql` y la CLI de Prisma (que usan la misma URL para migrar): `require` cifra sin validar, `verify-ca`/`verify-full` validan. Para validar el certificado, descárgalo desde Supabase y ponlo en `DATABASE_CA_CERT`.
+
+### 2. API en Render
+
+**New → Web Service** con el repositorio, runtime **Docker** (usa el `Dockerfile`):
+
+| Opción | Valor |
+|---|---|
+| Health Check Path | `/health` |
+| `DATABASE_URL` | La del paso anterior |
+| `JWT_SECRET` | Uno nuevo y largo (no reutilices el local) |
+| `CORS_ORIGIN` | URL del front, p. ej. `https://ideamatch.vercel.app` |
+| `TRUST_PROXY` | `1` |
+| `CLOUDINARY_URL` | Obligatoria en Render (su disco se borra en cada reinicio) |
+| `SEED_ON_START` | `true` (carga catálogos; es idempotente) |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Opcional: primer administrador |
+
+Render define `PORT` solo. En cada despliegue el contenedor ejecuta `prisma migrate deploy`, luego el seed y luego la API. El WebSocket queda en `wss://<servicio>.onrender.com/ws?token=<jwt>`.
+
+### 3. Monitoreo (UptimeRobot)
+
+`GET /health` (también responde `HEAD`) consulta la BD:
+
+- `200 { "status": "ok", "db": "ok", "timestamp": ... }` si todo responde.
+- `503 { "status": "error", "db": "error", ... }` si la BD no responde.
+
+En UptimeRobot crea un monitor **HTTP(s)** a `https://<servicio>.onrender.com/health` cada 5 minutos (o un monitor **Keyword** que busque `"status":"ok"`). En los planes gratuitos, ese ping también evita que el servicio de Render se duerma por inactividad.
+
+---
+
 ## Problemas comunes
 
 | Problema | Solución |
@@ -255,3 +300,5 @@ Estados de un proyecto: `borrador` → (`publish`) → `abierto` ⇄ `en_curso` 
 | Error de columna o tabla inexistente | Faltan migraciones: `npm run prisma:deploy` |
 | `429 TOO_MANY_REQUESTS` en login mientras pruebas | Espera 15 minutos o sube `AUTH_RATE_LIMIT` en `.env` |
 | Las fotos se pierden en Render | Falta `CLOUDINARY_URL` en las variables del servicio |
+| `self-signed certificate in certificate chain` | Usa `sslmode=require` en `DATABASE_URL` (no `verify-full` sin `DATABASE_CA_CERT`) |
+| `ENETUNREACH` o timeout al conectar a Supabase | Estás usando la conexión directa (IPv6): cambia al Session pooler |

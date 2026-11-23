@@ -43,9 +43,17 @@ app.use(helmet());
 app.use(cors({ origin: env.CORS_ORIGIN === "*" ? true : env.CORS_ORIGIN.split(",") }));
 app.use(express.json({ limit: "1mb" }));
 
+// Health check (Render, UptimeRobot): 200 si la API y la BD responden, 503 si la BD no responde.
+// Express también responde HEAD en esta ruta.
 app.get("/health", async (_req, res) => {
-  await prisma.$queryRaw`SELECT 1`;
-  res.json({ status: "ok", db: "ok", timestamp: new Date().toISOString() });
+  const timestamp = new Date().toISOString();
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.set("Cache-Control", "no-store").json({ status: "ok", db: "ok", timestamp });
+  } catch (err) {
+    console.error("[health] la base de datos no responde", err);
+    res.status(503).set("Cache-Control", "no-store").json({ status: "error", db: "error", timestamp });
+  }
 });
 
 app.use("/api", router);
