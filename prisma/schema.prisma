@@ -33,7 +33,7 @@ model Usuario {
   apellidos          String   @db.VarChar(60) // lastName
   esAdmin            Boolean  @default(false) @map("es_admin")
   rolGlobal          String   @default("Colaborador") @map("rol_global") @db.VarChar(20) // Creador | Colaborador
-  estado             String   @default("Activo") @db.VarChar(30) // sin correo: la cuenta queda activa al registrarse
+  estado             String   @default("Activo") @db.VarChar(30) // las cuentas nuevas empiezan en Pendiente_Verificacion (ver auth.service)
   fechaRegistro      DateTime @default(now()) @map("fecha_registro") @db.Timestamptz
   fechaActualizacion DateTime @default(now()) @updatedAt @map("fecha_actualizacion") @db.Timestamptz
 
@@ -392,6 +392,7 @@ model Token {
   valor         String   @unique @db.VarChar(255)
   expiraEn      DateTime @map("expira_en") @db.Timestamptz
   usado         Boolean  @default(false)
+  intentos      Int      @default(0) @db.SmallInt // intentos fallidos al ingresar el código
   fechaCreacion DateTime @default(now()) @map("fecha_creacion") @db.Timestamptz
 
   usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)

@@ -47,7 +47,7 @@ npm run db:seed
 npm run dev
 ```
 
-Abre `http://localhost:3000/docs`, registra un usuario en `POST /api/auth/register`, copia el `token` y pégalo en **Authorize**.
+Abre `http://localhost:3000/docs`, registra un usuario en `POST /api/auth/register`, confirma el correo en `POST /api/auth/verify-email` con el código de 6 dígitos (sin SMTP configurado aparece en la consola de la API), copia el `token` y pégalo en **Authorize**.
 
 ### Opción B — Todo en Docker (BD + API)
 
@@ -101,6 +101,11 @@ Se definen en `.env` (ver `.env.example`). Nunca subas `.env` al repositorio.
 | `CLOUDINARY_URL` | En producción | `cloudinary://API_KEY:API_SECRET@CLOUD_NAME`. Si no está, los archivos se guardan en disco |
 | `UPLOAD_DIR` | No | Carpeta para archivos locales (por defecto `uploads`) |
 | `PUBLIC_URL` | No | URL pública de la API para armar las URLs de archivos locales |
+| `SMTP_HOST` / `SMTP_PORT` | No | Servidor SMTP2GO (por defecto `mail.smtp2go.com` y `2525`; Render gratis bloquea 25, 465 y 587) |
+| `SMTP_SECURE` | No | `true` solo con SSL directo (465, 8465, 443). Por defecto `false` (STARTTLS) |
+| `SMTP_USER` / `SMTP_PASS` | En producción | Credenciales de SMTP2GO (Sending > SMTP Users). Sin ellas el código se muestra en la consola |
+| `MAIL_FROM` | En producción | Remitente verificado en SMTP2GO, p. ej. `IdeaMatch <no-reply@tudominio.com>` |
+| `REQUIRE_EMAIL_VERIFICATION` | No | `true` (por defecto): las cuentas nuevas confirman su correo con un código antes de iniciar sesión |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | No | Administrador inicial que crea `npm run db:seed` (si la cuenta existe, solo la marca como admin) |
 | `API_PORT` / `DB_PORT` | No | Puertos publicados por `docker compose` (por defecto 3000 / 5432) |
 
@@ -201,7 +206,8 @@ tests/
 
 ### Convenciones de la API
 
-- **Autenticación:** `Authorization: Bearer <token>`. El token se obtiene en `/api/auth/register` o `/api/auth/login` y se invalida con `/api/auth/logout`.
+- **Autenticación:** `Authorization: Bearer <token>`. El token se obtiene en `/api/auth/verify-email` (tras el registro) o `/api/auth/login` y se invalida con `/api/auth/logout`.
+- **Códigos por correo:** 6 dígitos, vencen a los 15 minutos, son de un solo uso y se invalidan tras 5 intentos fallidos (`400 INVALID_CODE` con `details.attemptsLeft`). Se puede pedir otro cada 60 s.
 - **Errores:** siempre `{ "code": "INVALID_CREDENTIALS", "message": "...", "details"?: ... }`. El front decide qué mostrar según `code`.
 - **Estados HTTP:** `400` datos inválidos · `401` sin sesión · `403` sin permiso · `404` no existe · `409` conflicto de reglas de negocio · `429` demasiados intentos.
 - **IDs:** son BIGINT y se devuelven como string (`"id": "1"`).
@@ -232,7 +238,7 @@ Si el WebSocket se cae, el front puede hacer polling con `GET /api/conversations
 
 | Sprint | Alcance | Estado |
 |---|---|---|
-| 1 — Acceso | `/auth/register`, `/auth/login`, `/auth/logout`, `/auth/me` | Hecho |
+| 1 — Acceso | `/auth/register`, `/auth/verify-email`, `/auth/resend-verification`, `/auth/login`, `/auth/logout`, `/auth/me`, `/auth/forgot-password`, `/auth/reset-password` | Hecho |
 | 2 — Perfil | `/me/profile`, `/me/profile/photo`, `/me/skills`, `/me/interests`, `/skills`, `/categories`, `/users/:id` | Hecho |
 | 3 — Proyectos | `/projects` (borrador), roles, `publish`, `status`, `cancel`, `/me/projects` | Hecho |
 | 4 — Exploración | `GET /projects` (q, categoryIds, skillIds, availability, status, sort, page, limit) y `GET /projects/:id` | Hecho |
@@ -274,6 +280,7 @@ Estados de un proyecto: `borrador` → (`publish`) → `abierto` ⇄ `en_curso` 
 | `TRUST_PROXY` | `1` |
 | `CLOUDINARY_URL` | Obligatoria en Render (su disco se borra en cada reinicio) |
 | `SEED_ON_START` | `true` (carga catálogos; es idempotente) |
+| `SMTP_USER` / `SMTP_PASS` / `MAIL_FROM` | Credenciales y remitente verificado de SMTP2GO. `SMTP_PORT` se queda en `2525`: el plan gratis de Render bloquea 25, 465 y 587 |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Opcional: primer administrador |
 
 Render define `PORT` solo. En cada despliegue el contenedor ejecuta `prisma migrate deploy`, luego el seed y luego la API. El WebSocket queda en `wss://<servicio>.onrender.com/ws?token=<jwt>`.

@@ -73,6 +73,12 @@ for (const archivo of archivos) {
     PUBLIC_URL: "",
     ADMIN_EMAIL: "",
     ADMIN_PASSWORD: "",
+    // Sin SMTP los correos quedan en memoria (bandejaDePrueba). Las pruebas de los sprints
+    // usan el registro directo; tests/verificacion.test.mts activa la verificación por su cuenta.
+    SMTP_USER: "",
+    SMTP_PASS: "",
+    MAIL_FROM: "",
+    REQUIRE_EMAIL_VERIFICATION: "false",
   });
   await db.close();
   rmSync(uploads, { recursive: true, force: true });

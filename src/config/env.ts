@@ -6,6 +6,12 @@ const opcional = z
   .optional()
   .transform((v) => (v?.trim() ? v.trim() : undefined));
 
+const booleano = (porDefecto: boolean) =>
+  z
+    .enum(["true", "false", "1", "0", ""])
+    .optional()
+    .transform((v) => (v === undefined || v === "" ? porDefecto : v === "true" || v === "1"));
+
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().int().positive().default(3000),
@@ -32,6 +38,20 @@ const envSchema = z.object({
   UPLOAD_DIR: z.string().default("uploads"),
   // URL pública de la API para armar las URLs de archivos locales (p. ej. http://localhost:3000)
   PUBLIC_URL: opcional,
+
+  // Correo (SMTP2GO). Sin SMTP_USER/SMTP_PASS/MAIL_FROM los correos no se envían:
+  // en desarrollo el código se muestra en la consola de la API.
+  // Render (plan gratis) bloquea 25, 465 y 587: por eso el puerto por defecto es 2525.
+  SMTP_HOST: z.string().default("mail.smtp2go.com"),
+  SMTP_PORT: z.coerce.number().int().positive().default(2525),
+  // true solo para SSL directo (465, 8465, 443). En 2525/8025/587 se usa STARTTLS.
+  SMTP_SECURE: booleano(false),
+  SMTP_USER: opcional,
+  SMTP_PASS: opcional,
+  // Remitente verificado en SMTP2GO, p. ej. "IdeaMatch <no-reply@tudominio.com>"
+  MAIL_FROM: opcional,
+  // Si es true, las cuentas nuevas deben confirmar su correo con un código antes de iniciar sesión
+  REQUIRE_EMAIL_VERIFICATION: booleano(true),
 });
 
 const parsed = envSchema.safeParse(process.env);
